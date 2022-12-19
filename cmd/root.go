@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/52funny/pikpakcli/cmd/download"
+	"github.com/52funny/pikpakcli/cmd/new"
 	"github.com/52funny/pikpakcli/cmd/share"
 	"github.com/52funny/pikpakcli/cmd/upload"
 	"github.com/52funny/pikpakcli/conf"
@@ -45,6 +46,7 @@ func init() {
 	rootCmd.AddCommand(upload.UploadCmd)
 	rootCmd.AddCommand(download.DownloadCmd)
 	rootCmd.AddCommand(share.ShareCommand)
+	rootCmd.AddCommand(new.NewCommand)
 }
 
 // Execute the command line interface
