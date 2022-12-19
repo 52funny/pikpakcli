@@ -2,7 +2,6 @@ package download
 
 import (
 	"path/filepath"
-	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
@@ -57,13 +56,13 @@ type warpStat struct {
 func init() {
 	DownloadCmd.Flags().IntVarP(&count, "count", "c", 3, "number of simultaneous downloads")
 	DownloadCmd.Flags().StringVarP(&output, "output", "o", "", "output directory")
-	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "", "specific the folder of the pikpak server\nonly support download folder")
+	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server\nonly support download folder")
 }
 
 // Downloads all files in the specified directory
 func downloadFolder(p *pikpak.PikPak) {
-	dirs, base := strings.Split(folder, "/"), filepath.Base(folder)
-	parentId, err := p.GetDeepParentId("", dirs)
+	base := filepath.Base(folder)
+	parentId, err := p.GetPathFolderId(folder)
 	if err != nil {
 		logrus.Errorln("Get Parent Folder Id Failed:", err)
 		return
@@ -154,8 +153,7 @@ func downloadFile(p *pikpak.PikPak, args []string) {
 	}
 	for _, f := range files {
 		dir, base := filepath.Dir(f), filepath.Base(f)
-		dirSplit := strings.Split(dir, "/")
-		id, err := p.GetDeepParentId("", dirSplit)
+		id, err := p.GetPathFolderId(dir)
 		if err != nil {
 			logrus.Errorln(dir, "Get Parent Folder Id Failed:", err)
 			continue

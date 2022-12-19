@@ -1,9 +1,6 @@
 package folder
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
 	"github.com/sirupsen/logrus"
@@ -30,22 +27,15 @@ var NewFolderCommand = &cobra.Command{
 var path string
 
 func init() {
-	NewFolderCommand.Flags().StringVarP(&path, "path", "p", "", "The path of the folder")
+	NewFolderCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
 }
 
 // new folder
 func handleNewFolder(p *pikpak.PikPak, folders []string) {
-
-	var parentId string
-	if strings.TrimSpace(path) == "" {
-		parentId = ""
-	} else {
-		id, err := p.GetDeepParentId("", strings.Split(filepath.Join(path), "/"))
-		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
-			return
-		}
-		parentId = id
+	parentId, err := p.GetPathFolderId(path)
+	if err != nil {
+		logrus.Errorf("Get parent id failed: %s\n", err)
+		return
 	}
 
 	for _, folder := range folders {

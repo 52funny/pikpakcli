@@ -51,15 +51,13 @@ var folder string
 var output string
 
 func init() {
-	ShareCommand.Flags().StringVarP(&folder, "path", "p", "", "specific the folder of the pikpak server")
+	ShareCommand.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server")
 	ShareCommand.Flags().StringVarP(&output, "output", "o", "", "specific the file to write")
 }
 
 // Share folder
 func shareFolder(p *pikpak.PikPak, f *os.File) {
-	path := filepath.Join(folder)
-	dirs := strings.Split(path, "/")
-	parentId, err := p.GetDeepParentId("", dirs)
+	parentId, err := p.GetDeepFolderId("", folder)
 	if err != nil {
 		logrus.Errorln("Get parent id failed:", err)
 		return
@@ -86,8 +84,7 @@ func shareFiles(p *pikpak.PikPak, args []string, f *os.File) {
 	}
 	for _, file := range files {
 		dir, base := filepath.Dir(file), filepath.Base(file)
-		dirSplit := strings.Split(dir, "/")
-		id, err := p.GetDeepParentId("", dirSplit)
+		id, err := p.GetPathFolderId(dir)
 		if err != nil {
 			logrus.Errorln(dir, "Get Parent Folder Id Failed:", err)
 			continue

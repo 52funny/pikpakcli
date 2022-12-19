@@ -17,6 +17,17 @@ func Contains(alreadySyncFiles []string, f string) bool {
 	return false
 }
 
+func Slash(path string) string {
+	path = filepath.Clean(path)
+	if path == "" {
+		return ""
+	}
+	if path[0] == '/' {
+		return path[1:]
+	}
+	return path
+}
+
 // 获取目录文件夹下的所有文件路径名
 func GetUploadFilePath(basePath string, defaultRegexp []*regexp.Regexp) []string {
 	rawPath := make([]string, 0)

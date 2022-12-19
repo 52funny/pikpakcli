@@ -23,7 +23,6 @@ import (
 	"github.com/52funny/pikpakcli/internal/utils"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 )
 
 type OssArgs struct {
@@ -40,74 +39,6 @@ var defaultChunkSize int64 = 1 << 18
 var Concurrent int64 = 1 << 4
 
 var ErrNotFoundFolder = errors.New("not found pikpak folder")
-
-func (p *PikPak) GetDeepParentId(parentId string, dirS []string) (string, error) {
-	for _, dir := range dirS {
-		id, err := p.GetParentId(parentId, dir)
-		if err != nil {
-			return "", err
-		}
-		parentId = id
-	}
-	return parentId, nil
-}
-
-func (p *PikPak) GetParentId(parentId string, dir string) (string, error) {
-	value := url.Values{}
-	value.Add("parent_id", parentId)
-	value.Add("page_token", "")
-	value.Add("with_audit", "false")
-	value.Add("thumbnail_size", "SIZE_LARGE")
-	value.Add("limit", "200")
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api-drive.mypikpak.com/drive/v1/files?"+value.Encode()), nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Country", "CN")
-	req.Header.Set("X-Peer-Id", p.DeviceId)
-	req.Header.Set("X-User-Region", "1")
-	req.Header.Set("X-Alt-Capability", "3")
-	req.Header.Set("X-Client-Version-Code", "10083")
-	req.Header.Set("X-Captcha-Token", p.CaptchaToken)
-	bs, err := p.sendRequest(req)
-	if err != nil {
-		return "", err
-	}
-	files := gjson.GetBytes(bs, "files").Array()
-
-	for _, file := range files {
-		kind := file.Get("kind").String()
-		name := file.Get("name").String()
-		trashed := file.Get("trashed").Bool()
-		if kind == "drive#folder" && name == dir && !trashed {
-			return file.Get("id").String(), nil
-		}
-	}
-	return "", ErrNotFoundFolder
-}
-
-func (p *PikPak) GetDeepParentOrCreateId(parentId string, dirS []string) (string, error) {
-	for _, dir := range dirS {
-		id, err := p.GetParentId(parentId, dir)
-		if err != nil {
-			logrus.Warn("dir ", err)
-			if err == ErrNotFoundFolder {
-				createId, err := p.CreateFolder(parentId, dir)
-				if err != nil {
-					return "", err
-				} else {
-					logrus.Info("create dir: ", dir)
-					parentId = createId
-				}
-			} else {
-				return "", err
-			}
-		} else {
-			parentId = id
-		}
-	}
-	return parentId, nil
-}
 
 func (p *PikPak) UploadFile(parentId, path string) error {
 	fileName := filepath.Base(path)

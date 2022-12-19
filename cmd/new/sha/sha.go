@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
@@ -56,22 +55,16 @@ var path string
 var input string
 
 func init() {
-	NewShaCommand.Flags().StringVarP(&path, "path", "p", "", "The path of the folder")
+	NewShaCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
 	NewShaCommand.Flags().StringVarP(&input, "input", "i", "", "The input of the sha file")
 }
 
 // new folder
 func handleNewSha(p *pikpak.PikPak, shas []string) {
-	var parentId string
-	if strings.TrimSpace(path) == "" {
-		parentId = ""
-	} else {
-		id, err := p.GetDeepParentId("", strings.Split(filepath.Join(path), "/"))
-		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
-			return
-		}
-		parentId = id
+	parentId, err := p.GetPathFolderId(path)
+	if err != nil {
+		logrus.Errorf("Get parent id failed: %s\n", err)
+		return
 	}
 
 	for _, sha := range shas {
