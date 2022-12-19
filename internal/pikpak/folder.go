@@ -19,7 +19,7 @@ import (
 func (p *PikPak) GetDeepFolderId(parentId string, dirPath string) (string, error) {
 	dirPath = utils.Slash(dirPath)
 	if dirPath == "" {
-		return "", nil
+		return parentId, nil
 	}
 
 	dirS := strings.Split(dirPath, "/")
@@ -77,7 +77,15 @@ func (p *PikPak) GetFolderId(parentId string, dir string) (string, error) {
 	return "", ErrNotFoundFolder
 }
 
-func (p *PikPak) GetDeepParentOrCreateId(parentId string, dirS []string) (string, error) {
+func (p *PikPak) GetDeepFolderOrCreateId(parentId string, dirPath string) (string, error) {
+
+	dirPath = utils.Slash(dirPath)
+	if dirPath == "" {
+		return parentId, nil
+	}
+
+	dirS := strings.Split(dirPath, "/")
+
 	for _, dir := range dirS {
 		id, err := p.GetFolderId(parentId, dir)
 		if err != nil {

@@ -20,10 +20,39 @@ var UploadCmd = &cobra.Command{
 	Aliases: []string{"u"},
 	Short:   `Upload file to pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 0 {
-			handleUpload(args[0])
-		} else {
-			logrus.Errorln("Please specific a file to upload")
+		pikpak.Concurrent = uploadConcurrency
+		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		err := p.Login()
+		if err != nil {
+			logrus.Error(err)
+		}
+		err = p.AuthCaptchaToken("POST:/drive/v1/files")
+		if err != nil {
+			logrus.Error(err)
+		}
+
+		go func() {
+			ticker := time.NewTicker(time.Second * 7200 * 3 / 4)
+			defer ticker.Stop()
+			for range ticker.C {
+				err := p.RefreshToken()
+				if err != nil {
+					logrus.Warn(err)
+					continue
+				}
+			}
+		}()
+		for _, v := range args {
+			stat, err := os.Stat(v)
+			if err != nil {
+				logrus.Errorf("Get file %s stat failed: %s", v, err)
+				continue
+			}
+			if stat.IsDir() {
+				handleUploadFolder(&p, v)
+			} else {
+				handleUploadFile(&p, v)
+			}
 		}
 	},
 }
@@ -39,7 +68,7 @@ var sync bool
 
 // Init upload command
 func init() {
-	UploadCmd.Flags().StringVarP(&uploadFolder, "path", "p", "", "specific the folder of the pikpak server")
+	UploadCmd.Flags().StringVarP(&uploadFolder, "path", "p", "/", "specific the folder of the pikpak server")
 	UploadCmd.Flags().Int64VarP(&uploadConcurrency, "concurrency", "c", 1<<4, "specific the concurrency of the upload")
 	UploadCmd.Flags().StringSliceVarP(&exclude, "exn", "e", []string{}, "specific the exclude file or folder")
 	UploadCmd.Flags().BoolVarP(&sync, "sync", "s", false, "sync mode")
@@ -59,15 +88,34 @@ func disposeExclude() {
 		defaultExcludeRegexp = append(defaultExcludeRegexp, regexp.MustCompile(v))
 	}
 }
+func handleUploadFile(p *pikpak.PikPak, path string) {
+	parentId, err := p.GetDeepFolderOrCreateId("", uploadFolder)
+	if err != nil {
+		logrus.Errorf("Get folder %s id failed: %s", uploadFolder, err)
+		return
+	}
+	dir := filepath.Dir(path)
+
+	if dir != "." {
+		parentId, err = p.GetDeepFolderOrCreateId(parentId, dir)
+		if err != nil {
+			logrus.Errorf("Get folder %s id failed: %s\n", dir, err)
+			return
+		}
+	}
+	err = p.UploadFile(parentId, path)
+	if err != nil {
+		logrus.Errorf("Upload file %s failed: %s\n", path, err)
+		return
+	}
+	logrus.Infof("Upload file %s success!\n", path)
+}
 
 // upload files logic
-func handleUpload(path string) {
-	pikpak.Concurrent = uploadConcurrency
+func handleUploadFolder(p *pikpak.PikPak, path string) {
 	uploadFilePath := utils.GetUploadFilePath(path, defaultExcludeRegexp)
 
 	var f *os.File
-
-	var parentId string
 
 	// sync mode
 	if sync {
@@ -97,51 +145,32 @@ func handleUpload(path string) {
 		logrus.Infoln(f)
 	}
 
-	p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
-
-	err := p.Login()
+	// if uploadFolder != "" {
+	// 	parentPathS := strings.Split(uploadFolder, "/")
+	// 	for i, v := range parentPathS {
+	// 		if v == "." {
+	// 			parentPathS = append(parentPathS[:i], parentPathS[i+1:]...)
+	// 		}
+	// 	}
+	// 	id, err := p.GetDeepFolderOrCreateId(parentId, parentPathS)
+	// 	if err != nil {
+	// 		logrus.Error(err)
+	// 		os.Exit(-1)
+	// 	} else {
+	// 		parentId = id
+	// 	}
+	// }
+	parentId, err := p.GetDeepFolderOrCreateId("", uploadFolder)
 	if err != nil {
-		logrus.Error(err)
-	}
-	err = p.AuthCaptchaToken("POST:/drive/v1/files")
-	if err != nil {
-		logrus.Error(err)
+		logrus.Errorf("get folder %s id error: ", uploadFolder, err)
 	}
 
-	go func() {
-		ticker := time.NewTicker(time.Second * 7200 * 3 / 4)
-		defer ticker.Stop()
-		for range ticker.C {
-			err := p.RefreshToken()
-			if err != nil {
-				logrus.Warn(err)
-				continue
-			}
-		}
-	}()
-
-	if uploadFolder != "" {
-		parentPathS := strings.Split(uploadFolder, "/")
-		for i, v := range parentPathS {
-			if v == "." {
-				parentPathS = append(parentPathS[:i], parentPathS[i+1:]...)
-			}
-		}
-		id, err := p.GetDeepParentOrCreateId(parentId, parentPathS)
-		if err != nil {
-			logrus.Error(err)
-			os.Exit(-1)
-		} else {
-			parentId = id
-		}
-	}
 	logrus.Debug("upload folder: ", uploadFolder, " parentId: ", parentId)
 
 	for _, v := range uploadFilePath {
 		if strings.Contains(v, "/") {
 			basePath := filepath.Dir(v)
-			basePathS := strings.Split(basePath, "/")
-			id, err := p.GetDeepParentOrCreateId(parentId, basePathS)
+			id, err := p.GetDeepFolderOrCreateId(parentId, basePath)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -152,7 +181,7 @@ func handleUpload(path string) {
 			if sync {
 				f.WriteString(v + "\n")
 			}
-			logrus.Infof("%s upload completed!\n", v)
+			logrus.Infof("%s upload success!\n", v)
 		} else {
 			err = p.UploadFile(parentId, filepath.Join(path, v))
 			if err != nil {
