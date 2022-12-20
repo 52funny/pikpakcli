@@ -124,11 +124,18 @@ OR
 ./pikpakcli new folder -p Movies NewFolder
 ```
 
-
 #### 新建 Sha 文件
 
 在 Movies 下新建 Sha 文件
 
 ```bash
 ./pikpakcli new sha -p /Movies 'PikPak://美国队长.mkv|22809693754|75BFE33237A0C06C725587F87981C567E4E478C3'
+```
+
+#### 新建磁力
+
+新建磁力文件
+
+```bash
+./pikpakcli new url 'magnet:?xt=urn:btih:e9c98e3ed488611abc169a81d8a21487fd1d0732'
 ```

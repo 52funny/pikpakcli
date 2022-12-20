@@ -3,6 +3,7 @@ package new
 import (
 	"github.com/52funny/pikpakcli/cmd/new/folder"
 	"github.com/52funny/pikpakcli/cmd/new/sha"
+	"github.com/52funny/pikpakcli/cmd/new/url"
 	"github.com/spf13/cobra"
 )
 
@@ -18,4 +19,5 @@ var NewCommand = &cobra.Command{
 func init() {
 	NewCommand.AddCommand(folder.NewFolderCommand)
 	NewCommand.AddCommand(sha.NewShaCommand)
+	NewCommand.AddCommand(url.NewUrlCommand)
 }
