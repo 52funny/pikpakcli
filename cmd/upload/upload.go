@@ -168,7 +168,7 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 	logrus.Debug("upload folder: ", uploadFolder, " parentId: ", parentId)
 
 	for _, v := range uploadFilePath {
-		if strings.Contains(v, "/") {
+		if strings.Contains(v, "/") || strings.Contains(v, "\\") {
 			basePath := filepath.Dir(v)
 			id, err := p.GetDeepFolderOrCreateId(parentId, basePath)
 			if err != nil {
