@@ -2,6 +2,7 @@ package url
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -20,6 +21,10 @@ var NewUrlCommand = &cobra.Command{
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
+		}
+		if cli {
+			handleCli(&p)
+			return
 		}
 		// input mode
 		if strings.TrimSpace(input) != "" {
@@ -54,9 +59,12 @@ var path string
 
 var input string
 
+var cli bool
+
 func init() {
 	NewUrlCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
 	NewUrlCommand.Flags().StringVarP(&input, "input", "i", "", "The input of the sha file")
+	NewUrlCommand.Flags().BoolVarP(&cli, "cli", "c", false, "The cli mode")
 }
 
 // new folder
@@ -69,6 +77,30 @@ func handleNewUrl(p *pikpak.PikPak, shas []string) {
 
 	for _, url := range shas {
 		err := p.CreateUrlFile(parentId, url)
+		if err != nil {
+			logrus.Errorln("Create url file failed: ", err)
+			continue
+		}
+		logrus.Infoln("Create url file success: ", url)
+	}
+}
+
+func handleCli(p *pikpak.PikPak) {
+	parentId, err := p.GetPathFolderId(path)
+	if err != nil {
+		logrus.Errorf("Get parent id failed: %s\n", err)
+		return
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("> ")
+		lineBytes, _, err := reader.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		url := string(lineBytes)
+		err = p.CreateUrlFile(parentId, url)
 		if err != nil {
 			logrus.Errorln("Create url file failed: ", err)
 			continue
