@@ -139,3 +139,23 @@ OR
 ```bash
 ./pikpakcli new url 'magnet:?xt=urn:btih:e9c98e3ed488611abc169a81d8a21487fd1d0732'
 ```
+
+## 额外配置
+
+### 使用 Proxy
+
+打开 `config.yml` 配置 `proxy` 设置项目
+
+```yml
+proxy: http://host:port
+```
+
+> proxy 必须包含 `://`
+
+### 内嵌 `config.yml` 到可执行文件
+
+```bash
+./pikpakcli embed -u config.yml
+```
+
+> -u 表示更新配置文件如果已经内嵌了 `config.yml`
