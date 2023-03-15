@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
 var Config = struct {
+	Proxy    string
 	Username string
 	Password string
 }{}
+
+var UseProxy = false
 
 func InitConfig(path string) error {
 	// first read the config info from executable file
@@ -30,7 +34,19 @@ func InitConfig(path string) error {
 	if err != nil {
 		return err
 	}
-	return yaml.Unmarshal(bs, &Config)
+	err = yaml.Unmarshal(bs, &Config)
+	if err != nil {
+		return err
+	}
+
+	// not empty
+	// not contains '://'
+	if len(Config.Proxy) != 0 && !strings.Contains(Config.Proxy, "://") {
+		return fmt.Errorf("proxy should start with http://")
+	} else if len(Config.Proxy) != 0 {
+		UseProxy = true
+	}
+	return nil
 }
 
 // read config from binary in the end

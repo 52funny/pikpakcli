@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
+	"github.com/52funny/pikpakcli/conf"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/sirupsen/logrus"
 )
 
 const userAgent = `ANDROID-com.pikcloud.pikpak/1.21.0`
@@ -32,6 +35,19 @@ func NewPikPak(account, password string) PikPak {
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 		},
+	}
+	if conf.UseProxy {
+		url, err := url.Parse(conf.Config.Proxy)
+		if err != nil {
+			logrus.Errorln("url parse proxy error", err)
+		}
+		p := http.ProxyURL(url)
+		client.Transport = &http.Transport{
+			Proxy: p,
+		}
+		http.DefaultClient.Transport = &http.Transport{
+			Proxy: p,
+		}
 	}
 	n := md5.Sum([]byte(account))
 	return PikPak{
