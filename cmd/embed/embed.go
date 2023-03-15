@@ -26,9 +26,20 @@ var EmbedCmd = &cobra.Command{
 			logrus.Errorln("check magic error", err)
 			os.Exit(1)
 		}
-		if ok {
-			logrus.Infoln("config file has been embedded")
+
+		if update && ok {
+			err = updateEmbed(args)
+			if err != nil {
+				logrus.Errorln(err)
+				os.Exit(1)
+			}
+			logrus.Infoln("Update embed config file success")
 			os.Exit(0)
+		}
+
+		if ok {
+			logrus.Warnln("config file has been embedded")
+			os.Exit(1)
 		}
 		err = embed(args)
 		if err != nil {
@@ -37,6 +48,12 @@ var EmbedCmd = &cobra.Command{
 		}
 		logrus.Infoln("Embed config file success")
 	},
+}
+
+var update bool
+
+func init() {
+	EmbedCmd.Flags().BoolVarP(&update, "update", "u", false, "update embed config")
 }
 
 func checkEmbed() (bool, error) {
@@ -81,6 +98,55 @@ func embed(args []string) error {
 	n, err := binFile.Write(bs)
 	if err != nil || n != len(bs) {
 		return fmt.Errorf("write to binary error: %s", err.Error())
+	}
+	return nil
+}
+
+// first remove embed config
+// second embed config
+func updateEmbed(args []string) error {
+	binFile, err := os.Open(os.Args[0])
+	if err != nil {
+		return fmt.Errorf("open binary file error: %s", err.Error())
+	}
+	binStat, _ := binFile.Stat()
+	var size = make([]byte, 4)
+	n, err := binFile.ReadAt(size, binStat.Size()-14)
+
+	if err != nil {
+		return err
+	}
+
+	if n != 4 {
+		return fmt.Errorf("read size err: %d", n)
+	}
+
+	configSize := int64(binary.LittleEndian.Uint32(size))
+	binFile.Seek(binStat.Size()-14-configSize, 0)
+	err = os.Truncate(os.Args[0], binStat.Size()-14-configSize)
+	// err = binFile.Truncate(binStat.Size() - 14 - configSize)
+	if err != nil {
+		return err
+	}
+	// close the file
+	binFile.Close()
+
+	return embed(args)
+}
+
+// delete some bytes in the end of file
+func deleteBytes(f *os.File, n int64) error {
+	fStat, _ := f.Stat()
+	// read the last n bytes
+	bs := make([]byte, n)
+	_, err := f.ReadAt(bs, fStat.Size()-n)
+	if err != nil {
+		return err
+	}
+	// truncate file
+	err = f.Truncate(fStat.Size() - n)
+	if err != nil {
+		return err
 	}
 	return nil
 }
