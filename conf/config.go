@@ -42,7 +42,7 @@ func InitConfig(path string) error {
 	// not empty
 	// not contains '://'
 	if len(Config.Proxy) != 0 && !strings.Contains(Config.Proxy, "://") {
-		return fmt.Errorf("proxy should start with http://")
+		return fmt.Errorf("proxy should contains ://")
 	} else if len(Config.Proxy) != 0 {
 		UseProxy = true
 	}
