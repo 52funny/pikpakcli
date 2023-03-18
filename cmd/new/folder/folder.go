@@ -25,17 +25,22 @@ var NewFolderCommand = &cobra.Command{
 }
 
 var path string
+var parentId string
 
 func init() {
 	NewFolderCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
+	NewFolderCommand.Flags().StringVarP(&parentId, "parent-id", "P", "", "The parent id")
 }
 
 // new folder
 func handleNewFolder(p *pikpak.PikPak, folders []string) {
-	parentId, err := p.GetPathFolderId(path)
-	if err != nil {
-		logrus.Errorf("Get parent id failed: %s\n", err)
-		return
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetPathFolderId(path)
+		if err != nil {
+			logrus.Errorf("Get parent id failed: %s\n", err)
+			return
+		}
 	}
 
 	for _, folder := range folders {

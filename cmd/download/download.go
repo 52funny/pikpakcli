@@ -38,6 +38,9 @@ var count int
 // default server root directory (.)
 var folder string
 
+// parent path id
+var parentId string
+
 // Output directory
 //
 // default current directory (.)
@@ -57,15 +60,20 @@ func init() {
 	DownloadCmd.Flags().IntVarP(&count, "count", "c", 3, "number of simultaneous downloads")
 	DownloadCmd.Flags().StringVarP(&output, "output", "o", "", "output directory")
 	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server\nonly support download folder")
+	DownloadCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "the parent path id")
 }
 
 // Downloads all files in the specified directory
 func downloadFolder(p *pikpak.PikPak) {
 	base := filepath.Base(folder)
-	parentId, err := p.GetPathFolderId(folder)
-	if err != nil {
-		logrus.Errorln("Get Parent Folder Id Failed:", err)
-		return
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetPathFolderId(folder)
+		if err != nil {
+			logrus.Errorln("Get Parent Folder Id Failed:", err)
+			return
+		}
+
 	}
 	collectStat := make([]warpStat, 0)
 	recursive(p, &collectStat, parentId, filepath.Join(output, base))
@@ -141,31 +149,37 @@ func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, p
 }
 
 func downloadFile(p *pikpak.PikPak, args []string) {
-	files := make([]string, 0, len(args))
-	for _, v := range args {
-		files = append(files, filepath.Join(folder, v))
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetPathFolderId(folder)
+		if err != nil {
+			logrus.Errorln("get folder failed:", err)
+			return
+		}
+	}
+
+	// if output not exists then create.
+	if err := utils.CreateDirIfNotExist(output); err != nil {
+		logrus.Errorln("Create output directory failed:", err)
+		return
 	}
 
 	sendCh := make(chan warpFile, 1)
-	receiveCh := make(chan struct{}, len(files))
+	receiveCh := make(chan struct{}, len(args))
+
 	for i := 0; i < count; i++ {
 		go download(sendCh, receiveCh)
 	}
-	for _, f := range files {
-		dir, base := filepath.Dir(f), filepath.Base(f)
-		id, err := p.GetPathFolderId(dir)
+	for _, path := range args {
+		stat, err := p.GetFileStat(parentId, path)
 		if err != nil {
-			logrus.Errorln(dir, "Get Parent Folder Id Failed:", err)
+			logrus.Errorln(path, "get parent id failed:", err)
 			continue
 		}
-		stat, err := p.GetFileStat(id, base)
-		if err != nil {
-			logrus.Errorln(base, "Get File Stat Failed:", err)
-			continue
-		}
+
 		file, err := p.GetFile(stat.ID)
 		if err != nil {
-			logrus.Errorln(base, "Get File Failed:", err)
+			logrus.Errorln(path, "get file failed", err)
 			continue
 		}
 		sendCh <- warpFile{
@@ -174,7 +188,7 @@ func downloadFile(p *pikpak.PikPak, args []string) {
 		}
 	}
 	close(sendCh)
-	for i := 0; i < len(files); i++ {
+	for i := 0; i < len(args); i++ {
 		<-receiveCh
 	}
 	close(receiveCh)

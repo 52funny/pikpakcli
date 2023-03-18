@@ -57,24 +57,29 @@ var NewUrlCommand = &cobra.Command{
 
 var path string
 
+var parentId string
+
 var input string
 
 var cli bool
 
 func init() {
 	NewUrlCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
+	NewUrlCommand.Flags().StringVarP(&parentId, "parent-id", "P", "", "The parent id")
 	NewUrlCommand.Flags().StringVarP(&input, "input", "i", "", "The input of the sha file")
 	NewUrlCommand.Flags().BoolVarP(&cli, "cli", "c", false, "The cli mode")
 }
 
 // new folder
 func handleNewUrl(p *pikpak.PikPak, shas []string) {
-	parentId, err := p.GetPathFolderId(path)
-	if err != nil {
-		logrus.Errorf("Get parent id failed: %s\n", err)
-		return
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetPathFolderId(path)
+		if err != nil {
+			logrus.Errorf("Get parent id failed: %s\n", err)
+			return
+		}
 	}
-
 	for _, url := range shas {
 		err := p.CreateUrlFile(parentId, url)
 		if err != nil {
@@ -86,10 +91,13 @@ func handleNewUrl(p *pikpak.PikPak, shas []string) {
 }
 
 func handleCli(p *pikpak.PikPak) {
-	parentId, err := p.GetPathFolderId(path)
-	if err != nil {
-		logrus.Errorf("Get parent id failed: %s\n", err)
-		return
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetPathFolderId(path)
+		if err != nil {
+			logrus.Errorf("Get parent id failed: %s\n", err)
+			return
+		}
 	}
 
 	reader := bufio.NewReader(os.Stdin)
