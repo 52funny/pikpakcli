@@ -66,12 +66,16 @@ var uploadConcurrency int64
 // Sync mode
 var sync bool
 
+// Parent path id
+var parentId string
+
 // Init upload command
 func init() {
 	UploadCmd.Flags().StringVarP(&uploadFolder, "path", "p", "/", "specific the folder of the pikpak server")
 	UploadCmd.Flags().Int64VarP(&uploadConcurrency, "concurrency", "c", 1<<4, "specific the concurrency of the upload")
 	UploadCmd.Flags().StringSliceVarP(&exclude, "exn", "e", []string{}, "specific the exclude file or folder")
 	UploadCmd.Flags().BoolVarP(&sync, "sync", "s", false, "sync mode")
+	UploadCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "parent folder id")
 }
 
 // Exclude string list
@@ -89,18 +93,21 @@ func disposeExclude() {
 	}
 }
 func handleUploadFile(p *pikpak.PikPak, path string) {
-	parentId, err := p.GetDeepFolderOrCreateId("", uploadFolder)
-	if err != nil {
-		logrus.Errorf("Get folder %s id failed: %s", uploadFolder, err)
-		return
-	}
-	dir := filepath.Dir(path)
-
-	if dir != "." {
-		parentId, err = p.GetDeepFolderOrCreateId(parentId, dir)
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
 		if err != nil {
-			logrus.Errorf("Get folder %s id failed: %s\n", dir, err)
+			logrus.Errorf("Get folder %s id failed: %s", uploadFolder, err)
 			return
+		}
+		dir := filepath.Dir(path)
+
+		if dir != "." {
+			parentId, err = p.GetDeepFolderOrCreateId(parentId, dir)
+			if err != nil {
+				logrus.Errorf("Get folder %s id failed: %s\n", dir, err)
+				return
+			}
 		}
 	}
 	err = p.UploadFile(parentId, path)
@@ -160,9 +167,12 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 	// 		parentId = id
 	// 	}
 	// }
-	parentId, err := p.GetDeepFolderOrCreateId("", uploadFolder)
-	if err != nil {
-		logrus.Errorf("get folder %s id error: ", uploadFolder, err)
+	var err error
+	if parentId != "" {
+		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
+		if err != nil {
+			logrus.Errorf("get folder %s id error: ", uploadFolder, err)
+		}
 	}
 
 	logrus.Debug("upload folder: ", uploadFolder, " parentId: ", parentId)

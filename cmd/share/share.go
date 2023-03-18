@@ -3,7 +3,6 @@ package share
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
@@ -50,17 +49,23 @@ var folder string
 // default is the stdout
 var output string
 
+var parentId string
+
 func init() {
 	ShareCommand.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server")
 	ShareCommand.Flags().StringVarP(&output, "output", "o", "", "specific the file to write")
+	ShareCommand.Flags().StringVarP(&parentId, "parent-id", "P", "", "parent folder id")
 }
 
 // Share folder
 func shareFolder(p *pikpak.PikPak, f *os.File) {
-	parentId, err := p.GetDeepFolderId("", folder)
-	if err != nil {
-		logrus.Errorln("Get parent id failed:", err)
-		return
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetDeepFolderId("", folder)
+		if err != nil {
+			logrus.Errorln("Get parent id failed:", err)
+			return
+		}
 	}
 	fileStat, err := p.GetFolderFileStatList(parentId)
 	if err != nil {
@@ -73,25 +78,22 @@ func shareFolder(p *pikpak.PikPak, f *os.File) {
 			fmt.Fprintf(f, "PikPak://%s|%s|%s\n", stat.Name, stat.Size, stat.Hash)
 		}
 	}
-
 }
 
 // Share files
 func shareFiles(p *pikpak.PikPak, args []string, f *os.File) {
-	files := make([]string, 0, len(args))
-	for _, v := range args {
-		files = append(files, filepath.Join(folder, v))
-	}
-	for _, file := range files {
-		dir, base := filepath.Dir(file), filepath.Base(file)
-		id, err := p.GetPathFolderId(dir)
+	var err error
+	if parentId == "" {
+		parentId, err = p.GetPathFolderId(folder)
 		if err != nil {
-			logrus.Errorln(dir, "Get Parent Folder Id Failed:", err)
-			continue
+			logrus.Errorln("get parent id failed:", err)
+			return
 		}
-		stat, err := p.GetFileStat(id, base)
+	}
+	for _, path := range args {
+		stat, err := p.GetFileStat(parentId, path)
 		if err != nil {
-			logrus.Errorln(dir, "Get File Stat Failed:", err)
+			logrus.Errorln(path, "get file stat error:", err)
 			continue
 		}
 		fmt.Fprintf(f, "PikPak://%s|%s|%s\n", stat.Name, stat.Size, stat.Hash)
