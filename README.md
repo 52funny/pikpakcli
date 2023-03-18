@@ -62,6 +62,12 @@ go build
 ./pikpakcli -c 20 -p Movies .
 ```
 
+使用 `-P` 指令来设置文件夹的 `id`
+
+```bash
+./pikpakcli upload -P AgmoDVmJPYbHn8ito1 .
+```
+
 ### 下载
 
 可以下载指定目录(如：`Movies` )下的所有文件
@@ -159,3 +165,15 @@ proxy: http://host:port
 ```
 
 > -u 表示更新配置文件如果已经内嵌了 `config.yml`
+
+### 查看命令提示
+
+```bash
+./pikpakcli help
+```
+
+### 查看指定命令的提示
+
+```bash
+./pikpakcli help upload
+```
