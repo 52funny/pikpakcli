@@ -140,6 +140,22 @@ OR
 
 #### 新建磁力
 
+### 获取配额
+
+获取 pikpak 云盘的空间
+
+```bash
+./pikpakcli quota -H
+```
+
+### 获取目录信息
+
+获取根目录下面的所有文件信息
+
+```bash
+./pikpakcli ls -lH -p /
+```
+
 新建磁力文件
 
 ```bash
