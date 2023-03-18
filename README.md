@@ -146,6 +146,22 @@ OR
 ./pikpakcli new url 'magnet:?xt=urn:btih:e9c98e3ed488611abc169a81d8a21487fd1d0732'
 ```
 
+### 获取配额
+
+获取 pikpak 云盘的空间
+
+```bash
+./pikpakcli quota -H
+```
+
+### 获取目录信息
+
+获取根目录下面的所有文件信息
+
+```bash
+./pikpakcli ls -lH -p /
+```
+
 ## 额外配置
 
 ### 使用 Proxy
