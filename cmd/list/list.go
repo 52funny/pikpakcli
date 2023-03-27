@@ -72,21 +72,21 @@ func display(mode int, file *pikpak.FileStat) {
 	switch mode {
 	case 0:
 		if file.Kind == "drive#folder" {
-			fmt.Printf("%6s %-20s\n", file.ID, color.GreenString(file.Name))
+			fmt.Printf("%-20s\n", color.GreenString(file.Name))
 		} else {
-			fmt.Printf("%6s %-20s\n", file.ID, file.Name)
+			fmt.Printf("%-20s\n", file.Name)
 		}
 	case 2:
 		if file.Kind == "drive#folder" {
-			fmt.Printf("%6s %6s %14s %s\n", file.ID, file.Size, file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
+			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, file.Size, file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
 		} else {
-			fmt.Printf("%6s %6s %14s %s\n", file.ID, file.Size, file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
+			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, file.Size, file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
 		}
 	case 3:
 		if file.Kind == "drive#folder" {
-			fmt.Printf("%6s %6s %14s %s\n", file.ID, displayStorage(file.Size), file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
+			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, displayStorage(file.Size), file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
 		} else {
-			fmt.Printf("%6s %6s %14s %s\n", file.ID, displayStorage(file.Size), file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
+			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, displayStorage(file.Size), file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
 		}
 	}
 }
