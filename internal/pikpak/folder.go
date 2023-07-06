@@ -78,9 +78,8 @@ func (p *PikPak) GetFolderId(parentId string, dir string) (string, error) {
 }
 
 func (p *PikPak) GetDeepFolderOrCreateId(parentId string, dirPath string) (string, error) {
-
 	dirPath = utils.Slash(dirPath)
-	if dirPath == "" {
+	if dirPath == "" || dirPath == "." {
 		return parentId, nil
 	}
 

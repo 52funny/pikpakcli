@@ -92,6 +92,7 @@ func disposeExclude() {
 		defaultExcludeRegexp = append(defaultExcludeRegexp, regexp.MustCompile(v))
 	}
 }
+
 func handleUploadFile(p *pikpak.PikPak, path string) {
 	var err error
 	if parentId == "" {
@@ -99,15 +100,6 @@ func handleUploadFile(p *pikpak.PikPak, path string) {
 		if err != nil {
 			logrus.Errorf("Get folder %s id failed: %s", uploadFolder, err)
 			return
-		}
-		dir := filepath.Dir(path)
-
-		if dir != "." {
-			parentId, err = p.GetDeepFolderOrCreateId(parentId, dir)
-			if err != nil {
-				logrus.Errorf("Get folder %s id failed: %s\n", dir, err)
-				return
-			}
 		}
 	}
 	err = p.UploadFile(parentId, path)
@@ -120,6 +112,7 @@ func handleUploadFile(p *pikpak.PikPak, path string) {
 
 // upload files logic
 func handleUploadFolder(p *pikpak.PikPak, path string) {
+	basePath := filepath.Base(filepath.ToSlash(path))
 	uploadFilePath := utils.GetUploadFilePath(path, defaultExcludeRegexp)
 
 	var f *os.File
@@ -149,41 +142,42 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 
 	logrus.Info("upload file list:")
 	for _, f := range uploadFilePath {
-		logrus.Infoln(f)
+		logrus.Infoln(filepath.Join(basePath, f))
 	}
 
-	// if uploadFolder != "" {
-	// 	parentPathS := strings.Split(uploadFolder, "/")
-	// 	for i, v := range parentPathS {
-	// 		if v == "." {
-	// 			parentPathS = append(parentPathS[:i], parentPathS[i+1:]...)
-	// 		}
-	// 	}
-	// 	id, err := p.GetDeepFolderOrCreateId(parentId, parentPathS)
-	// 	if err != nil {
-	// 		logrus.Error(err)
-	// 		os.Exit(-1)
-	// 	} else {
-	// 		parentId = id
-	// 	}
-	// }
 	var err error
-	if parentId != "" {
+	if parentId == "" {
 		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
 		if err != nil {
-			logrus.Errorf("get folder %s id error: ", uploadFolder, err)
+			logrus.Errorf("get folder %s id error: %s", uploadFolder, err)
+			return
 		}
 	}
 
 	logrus.Debug("upload folder: ", uploadFolder, " parentId: ", parentId)
 
+	parentId, err = p.GetDeepFolderOrCreateId(parentId, basePath)
+	if err != nil {
+		logrus.Errorf("get base_upload_path %s id error: %s", basePath, err)
+		return
+	}
+	parentIdMap := make(map[string]string)
 	for _, v := range uploadFilePath {
 		if strings.Contains(v, "/") || strings.Contains(v, "\\") {
-			basePath := filepath.Dir(v)
-			id, err := p.GetDeepFolderOrCreateId(parentId, basePath)
-			if err != nil {
-				logrus.Error(err)
+			var id string
+			base := filepath.Dir(v)
+
+			// Avoid secondary query ids
+			if mId, ok := parentIdMap[base]; !ok {
+				id, err = p.GetDeepFolderOrCreateId(parentId, base)
+				if err != nil {
+					logrus.Error(err)
+				}
+				parentIdMap[base] = id
+			} else {
+				id = mId
 			}
+
 			err = p.UploadFile(id, filepath.Join(path, v))
 			if err != nil {
 				logrus.Error(err)
