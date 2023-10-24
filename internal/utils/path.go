@@ -73,18 +73,45 @@ func GetUploadFilePath(basePath string, defaultRegexp []*regexp.Regexp) []string
 	return rawPath
 }
 
+// 检查路径是否存在
+func Exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 // 不存在目录就创建
 func CreateDirIfNotExist(path string) error {
-	_, err := os.Stat(path)
+	exist, err := Exists(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			err = os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				return err
-			}
-		} else {
+		return err
+	}
+	if !exist {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// 创建空文件
+func TouchFile(path string) error {
+	exist, err := Exists(path)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		f, err := os.Create(path)
+		if err != nil {
+			return err
+		}
+		f.Close()
 	}
 	return nil
 }

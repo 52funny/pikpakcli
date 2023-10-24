@@ -1,6 +1,7 @@
 package download
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/52funny/pikpakcli/conf"
@@ -201,11 +202,40 @@ func download(inCh <-chan warpFile, out chan<- struct{}) {
 		if !ok {
 			break
 		}
-		err := warp.f.Download(warp.output)
+		path := filepath.Join(warp.output, warp.f.Name)
+		exist, err := utils.Exists(path)
+		if err != nil {
+			logrus.Errorln("Access", path, "Failed:", err)
+			out <- struct{}{}
+			continue
+		}
+		flag := path + ".pikpakclidownload"
+		hasFlag, err := utils.Exists(flag)
+		if err != nil {
+			logrus.Errorln("Access", flag, "Failed:", err)
+			out <- struct{}{}
+			continue
+		}
+		if exist && !hasFlag {
+			logrus.Infoln("Skip downloaded file", warp.f.Name)
+			out <- struct{}{}
+			continue
+		}
+		err = utils.TouchFile(flag)
+		if err != nil {
+			logrus.Errorln("Create flag file", flag, "Failed:", err)
+			out <- struct{}{}
+			continue
+		}
+		err = warp.f.Download(path)
 		if err != nil {
 			logrus.Errorln("Download", warp.f.Name, "Failed:", err)
 		} else {
 			logrus.Infoln("Download", warp.f.Name, "Success")
+			err = os.Remove(flag)
+			if err != nil {
+				logrus.Warnln("Remove flag file", flag, "Failed:", err)
+			}
 		}
 		out <- struct{}{}
 	}
