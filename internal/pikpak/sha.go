@@ -59,7 +59,6 @@ START:
 		}
 		return fmt.Errorf("upload file error: %s", jsoniter.Get(bs, "error").ToString())
 	}
-	// logrus.Debug(string(bs))
 	file := jsoniter.Get(bs, "file")
 	phase := file.Get("phase").ToString()
 	if phase == "PHASE_TYPE_COMPLETE" {

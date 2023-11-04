@@ -109,7 +109,7 @@ func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 		}
 		error_code := gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error_code").Int()
 		if error_code == 9 {
-			err := p.AuthCaptchaToken("GET:/drive/v1/files")
+			err = p.AuthCaptchaToken("GET:/drive/v1/files")
 			if err != nil {
 				return fileList, err
 			}
@@ -160,12 +160,12 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 	error_code := gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error_code").Int()
 	if error_code != 0 {
 		if error_code == 9 {
-			err := p.AuthCaptchaToken("GET:/drive/v1/files")
+			err = p.AuthCaptchaToken("GET:/drive/v1/files")
 			if err != nil {
 				return fileInfo, err
 			}
 		}
-		err := errors.New(gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error").String() + ":" + fileId)
+		err = errors.New(gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error").String() + ":" + fileId)
 		return fileInfo, err
 	}
 	err = json.Unmarshal(bs, &fileInfo)

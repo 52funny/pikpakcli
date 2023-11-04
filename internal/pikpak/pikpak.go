@@ -5,7 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -98,7 +98,7 @@ func (p *PikPak) sendRequest(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	bs, err := ioutil.ReadAll(resp.Body)
+	bs, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
@@ -112,5 +112,4 @@ func (p *PikPak) setHeader(req *http.Request) {
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("X-Device-Id", p.DeviceId)
-
 }

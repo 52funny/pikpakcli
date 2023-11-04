@@ -8,7 +8,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/52funny/pikpakcli/internal/utils"
+	"github.com/52funny/pikpakhash"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
@@ -47,7 +47,11 @@ func (p *PikPak) UploadFile(parentId, path string) error {
 		return err
 	}
 	fileSize := fileState.Size()
-	fileMd5 := utils.FileSha1(path)
+	ph := pikpakhash.Default()
+	hash, err := ph.HashFromPath(path)
+	if err != nil {
+		return err
+	}
 	m := map[string]interface{}{
 		"body": map[string]string{
 			"duration": "",
@@ -57,7 +61,7 @@ func (p *PikPak) UploadFile(parentId, path string) error {
 		"kind":        "drive#file",
 		"name":        fileName,
 		"size":        fmt.Sprintf("%d", fileSize),
-		"hash":        fileMd5,
+		"hash":        hash,
 		"upload_type": "UPLOAD_TYPE_RESUMABLE",
 		"objProvider": map[string]string{
 			"provider": "UPLOAD_TYPE_UNKNOWN",
@@ -90,7 +94,7 @@ START:
 	error_code := jsoniter.Get(bs, "error_code").ToInt()
 	if error_code != 0 {
 		if error_code == 9 {
-			err := p.AuthCaptchaToken("POST:/drive/v1/files")
+			err = p.AuthCaptchaToken("POST:/drive/v1/files")
 			if err != nil {
 				return err
 			}
@@ -181,7 +185,7 @@ func uploadChunk(wait *sync.WaitGroup, ch chan Part, f *os.File, ChunkSize, file
 		return
 	}
 	buf := make([]byte, ChunkSize)
-	var offset int64 = part * ChunkSize
+	var offset = part * ChunkSize
 	for offset < fileSize {
 		n, _ := f.ReadAt(buf, offset)
 		// if err != nil {
@@ -296,7 +300,7 @@ func (p *PikPak) beforeUpload(ossArgs OssArgs) string {
 		return ""
 	}
 	defer resp.Body.Close()
-	bs, err := ioutil.ReadAll(resp.Body)
+	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return ""
 	}
@@ -340,7 +344,7 @@ func (p *PikPak) afterUpload(args *CompleteMultipartUpload, ossArgs OssArgs, upl
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
