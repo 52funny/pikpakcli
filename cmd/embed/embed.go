@@ -3,9 +3,10 @@ package embed
 import (
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
+	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,6 @@ var EmbedCmd = &cobra.Command{
 	Use:   "embed",
 	Short: `Embed config file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println(args)
 		if len(args) <= 0 {
 			logrus.Errorln("Please specify the config file path")
 			os.Exit(1)
@@ -28,7 +28,7 @@ var EmbedCmd = &cobra.Command{
 		}
 
 		if update && ok {
-			err = updateEmbed(args)
+			err = updateEmbed(args[0], os.Args[0])
 			if err != nil {
 				logrus.Errorln(err)
 				os.Exit(1)
@@ -41,7 +41,12 @@ var EmbedCmd = &cobra.Command{
 			logrus.Warnln("config file has been embedded")
 			os.Exit(1)
 		}
-		err = embed(args)
+		copyBin, err := copyBin(os.Args[0])
+		if err != nil {
+			logrus.Errorln("create copy binary file error:", err.Error())
+			os.Exit(1)
+		}
+		err = embed(args[0], copyBin)
 		if err != nil {
 			logrus.Errorln(err)
 			os.Exit(1)
@@ -75,14 +80,14 @@ func checkEmbed() (bool, error) {
 }
 
 // embed config file to binary
-func embed(args []string) error {
-	f, err := os.Open(args[0])
+func embed(configPath string, binFile *os.File) error {
+	f, err := os.Open(configPath)
 	if err != nil {
 		return fmt.Errorf("open config file error: %s", err.Error())
 	}
 	defer f.Close()
 	fStat, _ := f.Stat()
-	bs, err := ioutil.ReadAll(f)
+	bs, err := io.ReadAll(f)
 	if err != nil {
 		return fmt.Errorf("read config file error: %s", err.Error())
 	}
@@ -90,10 +95,10 @@ func embed(args []string) error {
 	binary.LittleEndian.PutUint32(sizeBytes, uint32(fStat.Size()))
 	bs = append(bs, sizeBytes...)
 	bs = append(bs, []byte("config.yml")...)
-	binFile, err := os.OpenFile(os.Args[0], os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return fmt.Errorf("open binary file error: %s", err.Error())
-	}
+	// binFile, err := os.OpenFile(binPath, os.O_WRONLY|os.O_APPEND, 0666)
+	// if err != nil {
+	// 	return fmt.Errorf("open binary file error: %s", err.Error())
+	// }
 	defer binFile.Close()
 	n, err := binFile.Write(bs)
 	if err != nil || n != len(bs) {
@@ -104,14 +109,14 @@ func embed(args []string) error {
 
 // first remove embed config
 // second embed config
-func updateEmbed(args []string) error {
-	binFile, err := os.Open(os.Args[0])
+func updateEmbed(configPath string, BinPath string) error {
+	copyBin, err := copyBin(BinPath)
 	if err != nil {
-		return fmt.Errorf("open binary file error: %s", err.Error())
+		return err
 	}
-	binStat, _ := binFile.Stat()
+	binStat, _ := copyBin.Stat()
 	var size = make([]byte, 4)
-	n, err := binFile.ReadAt(size, binStat.Size()-14)
+	n, err := copyBin.ReadAt(size, binStat.Size()-14)
 
 	if err != nil {
 		return err
@@ -122,16 +127,29 @@ func updateEmbed(args []string) error {
 	}
 
 	configSize := int64(binary.LittleEndian.Uint32(size))
-	binFile.Seek(binStat.Size()-14-configSize, 0)
-	err = os.Truncate(os.Args[0], binStat.Size()-14-configSize)
-	// err = binFile.Truncate(binStat.Size() - 14 - configSize)
+	copyBin.Seek(binStat.Size()-14-configSize, 0)
+	err = copyBin.Truncate(binStat.Size() - 14 - configSize)
 	if err != nil {
 		return err
 	}
-	// close the file
-	binFile.Close()
 
-	return embed(args)
+	return embed(configPath, copyBin)
+}
+
+func copyBin(path string) (*os.File, error) {
+	binFile, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open binary file error: %s", err.Error())
+	}
+	copyBinName := utils.GetEmbedBinName(os.Args[0])
+	binSt, _ := binFile.Stat()
+	copyBin, err := os.OpenFile(copyBinName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, binSt.Mode())
+	if err != nil {
+		return nil, fmt.Errorf("open copy binary file error: %s", err.Error())
+	}
+	io.Copy(copyBin, binFile)
+	binFile.Close()
+	return copyBin, nil
 }
 
 // delete some bytes in the end of file
