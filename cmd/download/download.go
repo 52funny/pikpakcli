@@ -31,7 +31,7 @@ var DownloadCmd = &cobra.Command{
 
 // Number of simultaneous downloads
 //
-// default 3
+// default 1
 var count int
 
 // Specifies the folder of the pikpak server
@@ -58,7 +58,7 @@ type warpStat struct {
 }
 
 func init() {
-	DownloadCmd.Flags().IntVarP(&count, "count", "c", 3, "number of simultaneous downloads")
+	DownloadCmd.Flags().IntVarP(&count, "count", "c", 1, "number of simultaneous downloads")
 	DownloadCmd.Flags().StringVarP(&output, "output", "o", "", "output directory")
 	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server\nonly support download folder")
 	DownloadCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "the parent path id")

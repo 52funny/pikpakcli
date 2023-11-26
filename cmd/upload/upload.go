@@ -1,7 +1,7 @@
 package upload
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -125,7 +125,7 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 			os.Exit(1)
 		}
 		f = file
-		bs, err := ioutil.ReadAll(f)
+		bs, err := io.ReadAll(f)
 		if err != nil {
 			logrus.Error("read file error: ", err)
 			os.Exit(1)
