@@ -25,7 +25,7 @@ var NewShaCommand = &cobra.Command{
 		if strings.TrimSpace(input) != "" {
 			f, err := os.OpenFile(input, os.O_RDONLY, 0666)
 			if err != nil {
-				logrus.Errorln("Open file %s failed:", input, err)
+				logrus.Errorf("Open file %s failed: %v\n", input, err)
 				return
 			}
 			reader := bufio.NewReader(f)

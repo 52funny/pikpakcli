@@ -1,6 +1,6 @@
 module github.com/52funny/pikpakcli
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c

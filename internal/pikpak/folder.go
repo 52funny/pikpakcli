@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/52funny/pikpakcli/internal/utils"
 	jsoniter "github.com/json-iterator/go"
@@ -22,7 +21,7 @@ func (p *PikPak) GetDeepFolderId(parentId string, dirPath string) (string, error
 		return parentId, nil
 	}
 
-	dirS := strings.Split(dirPath, "/")
+	dirS := utils.SplitSeparator(dirPath)
 
 	for _, dir := range dirS {
 		id, err := p.GetFolderId(parentId, dir)
@@ -83,7 +82,7 @@ func (p *PikPak) GetDeepFolderOrCreateId(parentId string, dirPath string) (strin
 		return parentId, nil
 	}
 
-	dirS := strings.Split(dirPath, "/")
+	dirS := utils.SplitSeparator(dirPath)
 
 	for _, dir := range dirS {
 		id, err := p.GetFolderId(parentId, dir)

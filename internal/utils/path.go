@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -17,12 +18,20 @@ func Contains(alreadySyncFiles []string, f string) bool {
 	return false
 }
 
+func SplitSeparator(path string) []string {
+	if path == "" {
+		return []string{}
+	}
+	return strings.Split(path, string(filepath.Separator))
+}
+
 func Slash(path string) string {
+	// clean path
 	path = filepath.Clean(path)
 	if path == "" {
 		return ""
 	}
-	if path[0] == '/' {
+	if path[0] == filepath.Separator {
 		return path[1:]
 	}
 	return path
