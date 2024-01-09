@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/52funny/pikpakcli/cmd/download"
@@ -59,7 +58,7 @@ func init() {
 // Execute the command line interface
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logrus.Errorln(err)
 		os.Exit(1)
 	}
 }
