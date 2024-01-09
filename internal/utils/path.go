@@ -1,21 +1,16 @@
 package utils
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 func Contains(alreadySyncFiles []string, f string) bool {
-	for _, v := range alreadySyncFiles {
-		if v == f {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(alreadySyncFiles, f)
 }
 
 func SplitSeparator(path string) []string {
@@ -38,48 +33,45 @@ func Slash(path string) string {
 }
 
 // 获取目录文件夹下的所有文件路径名
-func GetUploadFilePath(basePath string, defaultRegexp []*regexp.Regexp) []string {
+func GetUploadFilePath(basePath string, defaultRegexp []*regexp.Regexp) ([]string, error) {
 	rawPath := make([]string, 0)
-	state, err := os.Stat(basePath)
-	if err != nil {
-		logrus.Error(err)
-		return nil
-	}
-	if state.IsDir() {
-		filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				logrus.Error(err)
-				return nil
-			}
+	err := filepath.WalkDir(basePath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// match regexp
+		// if matched, then skip
+		// else append
+		matchRegexp := func(name string) bool {
 			for _, r := range defaultRegexp {
-				if r.MatchString(info.Name()) {
-					if info.IsDir() {
-						return filepath.SkipDir
-					}
-					return nil
+				if r.MatchString(name) {
+					return true
 				}
 			}
-			if info.IsDir() {
-				return nil
-			}
-			p, _ := filepath.Rel(basePath, path)
-			rawPath = append(rawPath, p)
-			return nil
-		})
-	} else {
-		for _, r := range defaultRegexp {
-			if r.MatchString(state.Name()) {
-				return nil
-			}
+			return false
 		}
-		// index := strings.Index(path, base)
-		// if index > 0 {
-		// 	rawPath = append(rawPath, path[index+len(base):])
-		// }
-		p, _ := filepath.Rel(basePath, basePath)
-		rawPath = append(rawPath, p)
-	}
-	return rawPath
+
+		if matchRegexp(d.Name()) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// skip dir
+		if d.IsDir() {
+			return nil
+		}
+		// get relative path
+		refPath, err := filepath.Rel(basePath, path)
+		if err != nil {
+			return err
+		}
+		// append to rawPath
+		rawPath = append(rawPath, refPath)
+		return nil
+	})
+	return rawPath, err
 }
 
 // 检查路径是否存在

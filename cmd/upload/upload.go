@@ -113,7 +113,11 @@ func handleUploadFile(p *pikpak.PikPak, path string) {
 // upload files logic
 func handleUploadFolder(p *pikpak.PikPak, path string) {
 	basePath := filepath.Base(filepath.ToSlash(path))
-	uploadFilePath := utils.GetUploadFilePath(path, defaultExcludeRegexp)
+	uploadFilePath, err := utils.GetUploadFilePath(path, defaultExcludeRegexp)
+	if err != nil {
+		logrus.Errorln(err)
+		return
+	}
 
 	var f *os.File
 
@@ -145,7 +149,6 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 		logrus.Infoln(filepath.Join(basePath, f))
 	}
 
-	var err error
 	if parentId == "" {
 		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
 		if err != nil {
