@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -119,30 +118,14 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 		return
 	}
 
-	var f *os.File
-
-	// sync mode
-	if sync {
-		file, err := os.OpenFile(filepath.Join(".", ".pikpaksync.txt"), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
-		if err != nil {
-			logrus.Error(err)
-			os.Exit(1)
-		}
-		f = file
-		bs, err := io.ReadAll(f)
-		if err != nil {
-			logrus.Error("read file error: ", err)
-			os.Exit(1)
-		}
-		alreadySyncFiles := strings.Split(string(bs), "\n")
-		files := make([]string, 0)
-		for _, f := range uploadFilePath {
-			if !utils.Contains(alreadySyncFiles, f) {
-				files = append(files, f)
-			}
-		}
-		uploadFilePath = files
+	syncTxt, err := utils.NewSyncTxt(".pikpaksync.txt", sync)
+	if err != nil {
+		logrus.Errorln(err)
+		return
 	}
+	defer syncTxt.Close()
+
+	uploadFilePath = syncTxt.UnSync(uploadFilePath)
 
 	logrus.Info("upload file list:")
 	for _, f := range uploadFilePath {
@@ -185,18 +168,14 @@ func handleUploadFolder(p *pikpak.PikPak, path string) {
 			if err != nil {
 				logrus.Error(err)
 			}
-			if sync {
-				f.WriteString(v + "\n")
-			}
+			syncTxt.WriteString(v + "\n")
 			logrus.Infof("%s upload success!\n", v)
 		} else {
 			err = p.UploadFile(parentId, filepath.Join(path, v))
 			if err != nil {
 				logrus.Error(err)
 			}
-			if sync {
-				f.WriteString(v + "\n")
-			}
+			syncTxt.WriteString(v + "\n")
 		}
 	}
 }
