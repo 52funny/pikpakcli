@@ -100,6 +100,12 @@ OR
 ./pikpakcli download -p Movies -o Film
 ```
 
+下载过程中显示下载状态信息 `-g`
+
+```bash
+./pikpakcli download -p Movies -o Film -g
+```
+
 ### 分享
 
 分享 `Movies` 下的所有文件的链接
@@ -180,7 +186,7 @@ proxy: http://host:port
 ./pikpakcli embed -u config.yml
 ```
 
-> -u 表示更新配置文件如果已经内嵌了 `config.yml`
+首先执行这段代码， 然后会在该目录生成 **pikpakcli_embed** 文件, `-u` 表示更新配置文件。
 
 ### 查看命令提示
 
