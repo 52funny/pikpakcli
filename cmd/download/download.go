@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
@@ -267,10 +268,22 @@ func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
 		}
 
 		var bar *mpb.Bar = nil
+
+		// This is simple way to display part names
+		// It may be replaced one day.
+		trimeName := func(name string) string {
+			// Fixed value, which is an unwise approach.
+			maxLen := 30
+			if utf8.RuneCountInString(name)+3 > maxLen {
+				return name[:maxLen-3] + "..."
+			}
+			return name
+		}
+
 		if pb != nil {
 			bar = pb.AddBar(siz,
 				mpb.PrependDecorators(
-					decor.Name(warp.f.Name),
+					decor.Name(trimeName(warp.f.Name)),
 					decor.Percentage(decor.WCSyncSpace),
 				),
 				mpb.AppendDecorators(
