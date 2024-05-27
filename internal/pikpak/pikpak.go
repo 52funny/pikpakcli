@@ -60,16 +60,16 @@ func NewPikPak(account, password string) PikPak {
 
 func (p *PikPak) Login() error {
 	m := make(map[string]string)
-	m["captcha_token"] = ""
 	m["client_id"] = clientID
 	m["client_secret"] = clientSecret
+	m["grant_type"] = "password"
 	m["username"] = p.Account
 	m["password"] = p.Password
 	bs, err := jsoniter.Marshal(&m)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/auth/signin?client_id="+clientID, bytes.NewBuffer(bs))
+	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/auth/token", bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}
