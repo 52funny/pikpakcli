@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (p *PikPak) CreateUrlFile(parentId, url string) error {
+func (p *PikPak) CreateUrlFile(parentId, url string) (string, error) {
 	m := map[string]interface{}{
 		"kind":        "drive#file",
 		"upload_type": "UPLOAD_TYPE_URL",
@@ -22,12 +22,12 @@ func (p *PikPak) CreateUrlFile(parentId, url string) error {
 	}
 	bs, err := jsoniter.Marshal(&m)
 	if err != nil {
-		return err
+		return "", err
 	}
 START:
 	req, err := http.NewRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
 	if err != nil {
-		return err
+		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Product_flavor_name", "cha")
@@ -39,18 +39,18 @@ START:
 	req.Header.Set("Country", "CN")
 	bs, err = p.sendRequest(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	error_code := jsoniter.Get(bs, "error_code").ToInt()
 	if error_code != 0 {
 		if error_code == 9 {
 			err := p.AuthCaptchaToken("POST:/drive/v1/files")
 			if err != nil {
-				return err
+				return "", err
 			}
 			goto START
 		}
-		return fmt.Errorf("upload file error: %s", jsoniter.Get(bs, "error").ToString())
+		return "", fmt.Errorf("upload file error: %s", jsoniter.Get(bs, "error").ToString())
 	}
 
 	task := jsoniter.Get(bs, "task")
@@ -61,5 +61,5 @@ START:
 	// } else {
 	// 	return fmt.Errorf("create file error: %s", phase)
 	// }
-	return nil
+	return task.ToString(), nil
 }

@@ -34,16 +34,17 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Config path
-var configPath string
-
-// Debug mode
-var debug bool
+var (
+	configPath, output string // Config Path
+	debug              bool   // Debug Mode
+)
 
 // Initialize the command line interface
 func init() {
 	// debug
+
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "debug mode")
+	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "text", "Output Format:[json,text]")
 	// config
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", "config.yml", "config file path")
 	rootCmd.AddCommand(upload.UploadCmd)
