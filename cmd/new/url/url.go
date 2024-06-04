@@ -9,18 +9,34 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/spf13/cobra"
+)
+
+var (
+	path, parentId, input, outputFormatVal string
+	cli                                    bool
+	err                                    error
+	logClient                              utils.Log
 )
 
 var NewUrlCommand = &cobra.Command{
 	Use:   "url",
 	Short: `Create a file according to url`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
-		err := p.Login()
+
+		flagset := cmd.InheritedFlags()
+		outputFormatVal, err = flagset.GetString("output")
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			panic(err)
+		}
+
+		logClient = utils.NewLog(outputFormatVal)
+
+		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		err = p.Login()
+		if err != nil {
+			logClient.Errorf("Login Failed: %v", err)
 		}
 		if cli {
 			handleCli(&p)
@@ -30,7 +46,7 @@ var NewUrlCommand = &cobra.Command{
 		if strings.TrimSpace(input) != "" {
 			f, err := os.OpenFile(input, os.O_RDONLY, 0666)
 			if err != nil {
-				logrus.Errorln("Open file %s failed:", input, err)
+				logClient.Errorf("Open file %s failed: %v", input, err)
 				return
 			}
 			reader := bufio.NewReader(f)
@@ -50,18 +66,10 @@ var NewUrlCommand = &cobra.Command{
 		if len(args) > 0 {
 			handleNewUrl(&p, args)
 		} else {
-			logrus.Errorln("Please input the folder name")
+			logClient.Error("Please input the folder name")
 		}
 	},
 }
-
-var path string
-
-var parentId string
-
-var input string
-
-var cli bool
 
 func init() {
 	NewUrlCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
@@ -76,18 +84,21 @@ func handleNewUrl(p *pikpak.PikPak, shas []string) {
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
+			logClient.Errorf("Get parent id failed: %v\n", err)
 			return
 		}
 	}
 	for _, url := range shas {
-		err := p.CreateUrlFile(parentId, url)
+		taskInfo, err := p.CreateUrlFile(parentId, url)
 		if err != nil {
-			logrus.Errorln("Create url file failed: ", err)
+			logClient.Errorf("Create url file failed: %v\n", err)
 			continue
 		}
-		logrus.Infoln("Create url file success: ", url)
+
+		logClient.Infof("Create url file success: %s\n", url)
+		logClient.Info(taskInfo)
 	}
+
 }
 
 func handleCli(p *pikpak.PikPak) {
@@ -95,7 +106,7 @@ func handleCli(p *pikpak.PikPak) {
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
+			logClient.Errorf("Get parent id failed: %v\n", err)
 			return
 		}
 	}
@@ -108,11 +119,13 @@ func handleCli(p *pikpak.PikPak) {
 			break
 		}
 		url := string(lineBytes)
-		err = p.CreateUrlFile(parentId, url)
+		taskInfo, err := p.CreateUrlFile(parentId, url)
 		if err != nil {
-			logrus.Errorln("Create url file failed: ", err)
+			logClient.Errorf("Create url file failed: %v\n", err)
 			continue
 		}
-		logrus.Infoln("Create url file success: ", url)
+		logClient.Infof("Create url file success: ", url)
+
+		logClient.Info(taskInfo)
 	}
 }
