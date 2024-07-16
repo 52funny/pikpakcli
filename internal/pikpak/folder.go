@@ -48,7 +48,7 @@ func (p *PikPak) GetFolderId(parentId string, dir string) (string, error) {
 	value.Add("page_token", "")
 	value.Add("with_audit", "false")
 	value.Add("thumbnail_size", "SIZE_LARGE")
-	value.Add("limit", "200")
+	value.Add("limit", "500")
 	for {
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://api-drive.mypikpak.com/drive/v1/files?"+value.Encode()), nil)
 		if err != nil {

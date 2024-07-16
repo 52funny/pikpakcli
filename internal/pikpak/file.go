@@ -89,7 +89,7 @@ func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 	filters := `{"trashed":{"eq":false}}`
 	query := url.Values{}
 	query.Add("thumbnail_size", "SIZE_MEDIUM")
-	query.Add("limit", "100")
+	query.Add("limit", "500")
 	query.Add("parent_id", parentId)
 	query.Add("with_audit", "false")
 	query.Add("filters", filters)
