@@ -96,7 +96,6 @@ func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 	fileList := make([]FileStat, 0)
 
 	for {
-		// query.Add("filters", filters)
 		req, err := http.NewRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files?"+query.Encode(), nil)
 		if err != nil {
 			return fileList, err

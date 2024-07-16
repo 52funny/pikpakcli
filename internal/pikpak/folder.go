@@ -49,29 +49,36 @@ func (p *PikPak) GetFolderId(parentId string, dir string) (string, error) {
 	value.Add("with_audit", "false")
 	value.Add("thumbnail_size", "SIZE_LARGE")
 	value.Add("limit", "200")
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api-drive.mypikpak.com/drive/v1/files?"+value.Encode()), nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Country", "CN")
-	req.Header.Set("X-Peer-Id", p.DeviceId)
-	req.Header.Set("X-User-Region", "1")
-	req.Header.Set("X-Alt-Capability", "3")
-	req.Header.Set("X-Client-Version-Code", "10083")
-	req.Header.Set("X-Captcha-Token", p.CaptchaToken)
-	bs, err := p.sendRequest(req)
-	if err != nil {
-		return "", err
-	}
-	files := gjson.GetBytes(bs, "files").Array()
-
-	for _, file := range files {
-		kind := file.Get("kind").String()
-		name := file.Get("name").String()
-		trashed := file.Get("trashed").Bool()
-		if kind == "drive#folder" && name == dir && !trashed {
-			return file.Get("id").String(), nil
+	for {
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api-drive.mypikpak.com/drive/v1/files?"+value.Encode()), nil)
+		if err != nil {
+			return "", err
 		}
+		req.Header.Set("Country", "CN")
+		req.Header.Set("X-Peer-Id", p.DeviceId)
+		req.Header.Set("X-User-Region", "1")
+		req.Header.Set("X-Alt-Capability", "3")
+		req.Header.Set("X-Client-Version-Code", "10083")
+		req.Header.Set("X-Captcha-Token", p.CaptchaToken)
+		bs, err := p.sendRequest(req)
+		if err != nil {
+			return "", err
+		}
+		files := gjson.GetBytes(bs, "files").Array()
+
+		for _, file := range files {
+			kind := file.Get("kind").String()
+			name := file.Get("name").String()
+			trashed := file.Get("trashed").Bool()
+			if kind == "drive#folder" && name == dir && !trashed {
+				return file.Get("id").String(), nil
+			}
+		}
+		nextToken := gjson.GetBytes(bs, "next_page_token").String()
+		if nextToken == "" {
+			break
+		}
+		value.Set("page_token", nextToken)
 	}
 	return "", ErrNotFoundFolder
 }
