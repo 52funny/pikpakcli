@@ -59,17 +59,23 @@ func NewPikPak(account, password string) PikPak {
 }
 
 func (p *PikPak) Login() error {
+	captchaToken, err := p.getCaptchaToken()
+	if err != nil {
+		return err
+	}
 	m := make(map[string]string)
 	m["client_id"] = clientID
 	m["client_secret"] = clientSecret
 	m["grant_type"] = "password"
 	m["username"] = p.Account
 	m["password"] = p.Password
+	m["captcha_token"] = captchaToken
 	bs, err := jsoniter.Marshal(&m)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/auth/token", bytes.NewBuffer(bs))
+
+	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/auth/signin", bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}
@@ -90,6 +96,34 @@ func (p *PikPak) Login() error {
 	p.Sub = jsoniter.Get(bs, "sub").ToString()
 	p.RefreshSecond = jsoniter.Get(bs, "expires_in").ToInt64()
 	return nil
+}
+
+func (p *PikPak) getCaptchaToken() (string, error) {
+	m := make(map[string]any)
+	m["client_id"] = clientID
+	m["device_id"] = p.DeviceId
+	m["action"] = "POST:https://user.mypikpak.com/v1/auth/signin"
+	m["meta"] = map[string]string{
+		"username": p.Account,
+	}
+	body, err := jsoniter.Marshal(&m)
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/shield/captcha/init", bytes.NewBuffer(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	bs, err := p.sendRequest(req)
+	if err != nil {
+		return "", err
+	}
+	error_code := jsoniter.Get(bs, "error_code").ToInt()
+	if error_code != 0 {
+		return "", fmt.Errorf("get captcha error: %v", jsoniter.Get(bs, "error").ToString())
+	}
+	return jsoniter.Get(bs, "captcha_token").ToString(), nil
 }
 
 func (p *PikPak) sendRequest(req *http.Request) ([]byte, error) {
