@@ -6,50 +6,55 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
-var Config = struct {
+type ConfigType struct {
 	Proxy    string
 	Username string
 	Password string
-}{}
+}
 
-var UseProxy = false
+var Config ConfigType
 
+// UseProxy returns whether the proxy is used
+func (c *ConfigType) UseProxy() bool {
+	return len(c.Proxy) != 0
+}
+
+// Initializing configuration information
 func InitConfig(path string) error {
-	// first read the config info from executable file
+	// Firstly, read the config info from executable file
 	if readFromBinary() == nil {
 		return nil
 	}
 
-	// read the config info from the config path
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	bs, err := io.ReadAll(f)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(bs, &Config)
-	if err != nil {
-		return err
+	// Secondly, it reads config.yml from the given path.
+	// If there is no config.yml in the given path, it reads it from the default config path.
+	_, err := os.Stat(path)
+	switch os.IsNotExist(err) {
+	case true:
+		if err := readFromConfigDir(); err != nil {
+			return err
+		}
+	case false:
+		if err := readFromPath(path); err != nil {
+			return err
+		}
 	}
 
-	// not empty
-	// not contains '://'
+	// Not empty
+	// Must contains '://'
 	if len(Config.Proxy) != 0 && !strings.Contains(Config.Proxy, "://") {
 		return fmt.Errorf("proxy should contains ://")
-	} else if len(Config.Proxy) != 0 {
-		UseProxy = true
 	}
 	return nil
 }
 
-// read config from binary in the end
+// Read config from binary in the end
 // config_bytes: n bytes
 // end_magic: 10 bytes
 // size: 4 bytes
@@ -77,7 +82,7 @@ func readFromBinary() error {
 		return fmt.Errorf("read end_magic err: %d", n)
 	}
 
-	// not have `config.yml` in the end
+	// Not have `config.yml` in the end
 	if !bytes.Equal(end_magic, []byte("config.yml")) {
 		return fmt.Errorf("not a pikpakcli binary")
 	}
@@ -106,6 +111,47 @@ func readFromBinary() error {
 		return fmt.Errorf("read config size err: %d", n)
 	}
 
-	// unmarshal config
+	// Unmarshal config
 	return yaml.Unmarshal(configBuf, &Config)
+}
+
+// Read configuration file from the given path
+func readFromPath(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	bs, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(bs, &Config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Read configuration file from config path
+func readFromConfigDir() error {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(configDir, "pikpakcli", "config.yml")
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	bs, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(bs, &Config)
+	if err != nil {
+		return err
+	}
+	return nil
 }

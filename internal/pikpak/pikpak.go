@@ -36,7 +36,7 @@ func NewPikPak(account, password string) PikPak {
 			Proxy: http.ProxyFromEnvironment,
 		},
 	}
-	if conf.UseProxy {
+	if conf.Config.UseProxy() {
 		url, err := url.Parse(conf.Config.Proxy)
 		if err != nil {
 			logrus.Errorln("url parse proxy error", err)
