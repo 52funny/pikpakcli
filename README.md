@@ -59,6 +59,10 @@ After that you can run the `ls` command to see the files stored on **PikPak**.
 ./pikpakcli ls
 ```
 
+## Usage
+
+See [Command](docs/command.md) for more commands information.
+
 ## Contributors
 
 <a href = "https://github.com/52funny/pikpakcli/graphs/contributors">

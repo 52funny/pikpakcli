@@ -57,6 +57,10 @@ go build
 ./pikpakcli ls
 ```
 
+## 用法
+
+参阅 [Command](docs/command_zhCN.md) 查看更多的指令
+
 ## 贡献者
 
 <a href = "https://github.com/52funny/pikpakcli/graphs/contributors">
