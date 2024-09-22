@@ -1,3 +1,5 @@
+github.com/52funny/fastdown v0.0.0-20240922141535-b9982d970a9d h1:lcDI78hsjJjq96Uo7DKcUiGf5c1MY6EkapyPr7RSnqU=
+github.com/52funny/fastdown v0.0.0-20240922141535-b9982d970a9d/go.mod h1:X/tIbdoRedE29WSEneKIYR8+SsUObqjn6S/LRFUPeFw=
 github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c h1:ecJG8tmvgH6exVE4+I3rFPPA1Mk3/lNb8VZ6A7dtcyI=
 github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c/go.mod h1:YA/IS8XUrMTcrY+J4yOJ3CDgoyQ28NOOo4GnzOL6bTI=
 github.com/VividCortex/ewma v1.2.0 h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1ow=
@@ -41,8 +43,8 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
-github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
+github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/tidwall/gjson v1.14.4 h1:uo0p8EbA09J7RQaflQ1aBRffTR7xedD2bcIVSYxLnkM=
 github.com/tidwall/gjson v1.14.4/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
