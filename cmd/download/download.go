@@ -4,34 +4,15 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"unicode/utf8"
+	"sync"
 
+	"github.com/52funny/fastdown"
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/vbauerster/mpb/v8"
-	"github.com/vbauerster/mpb/v8/decor"
 )
-
-var DownloadCmd = &cobra.Command{
-	Use:     "download",
-	Aliases: []string{"d"},
-	Short:   `Download file from pikpak server`,
-	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
-		err := p.Login()
-		if err != nil {
-			logrus.Errorln("Login Failed:", err)
-		}
-		if len(args) > 0 {
-			downloadFile(&p, args)
-		} else {
-			downloadFolder(&p)
-		}
-	},
-}
 
 // Number of simultaneous downloads
 //
@@ -51,11 +32,6 @@ var parentId string
 // default current directory (.)
 var output string
 
-// Progress bar
-//
-// default false
-var progress bool
-
 type warpFile struct {
 	f      *pikpak.File
 	output string
@@ -71,78 +47,74 @@ func init() {
 	DownloadCmd.Flags().StringVarP(&output, "output", "o", ".", "output directory")
 	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server\nonly support download folder")
 	DownloadCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "the parent path id")
-	DownloadCmd.Flags().BoolVarP(&progress, "progress", "g", false, "show download progress")
+}
+
+var DownloadCmd = &cobra.Command{
+	Use:     "download",
+	Aliases: []string{"d"},
+	Short:   `Download file from pikpak server`,
+	Run: func(cmd *cobra.Command, args []string) {
+		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		err := p.Login()
+		if err != nil {
+			logrus.Errorln("Login Failed:", err)
+		}
+		var collectStat []warpStat
+		if len(args) > 0 {
+			cst, err := collectFileStat(&p, args)
+			if err != nil {
+				logrus.Errorln("Collect File Stat Failed:", err)
+				return
+			}
+			collectStat = cst
+		} else {
+			cst, err := collectFolderStat(&p)
+			if err != nil {
+				logrus.Errorln("Collect Folder Stat Failed:", err)
+				return
+			}
+			collectStat = cst
+		}
+
+		for _, st := range collectStat {
+			logrus.Infoln("Download:", st.output, st.s.Name)
+		}
+		in := make(chan warpFile, count)
+		wait := new(sync.WaitGroup)
+
+		for i := 0; i < count; i++ {
+			wait.Add(1)
+			go download(in, wait)
+		}
+		for _, st := range collectStat {
+			f, err := p.GetFile(st.s.ID)
+			if err != nil {
+				logrus.Errorln("Get File Failed:", err)
+				continue
+			}
+			in <- warpFile{
+				f:      &f,
+				output: st.output,
+			}
+		}
+		close(in)
+		wait.Wait()
+	},
 }
 
 // Downloads all files in the specified directory
-func downloadFolder(p *pikpak.PikPak) {
+func collectFolderStat(p *pikpak.PikPak) ([]warpStat, error) {
 	base := filepath.Base(folder)
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(folder)
 		if err != nil {
-			logrus.Errorln("Get Parent Folder Id Failed:", err)
-			return
+			return nil, err
 		}
-
 	}
 	collectStat := make([]warpStat, 0)
 	recursive(p, &collectStat, parentId, filepath.Join(output, base))
-
-	statCh := make(chan warpStat, len(collectStat))
-	statDone := make(chan struct{})
-
-	fileCh := make(chan warpFile, len(collectStat))
-	fileDone := make(chan struct{})
-
-	for i := 0; i < 4; i += 1 {
-		go func(fileCh chan<- warpFile, statCh <-chan warpStat, statDone chan<- struct{}) {
-			for {
-				stat, ok := <-statCh
-				if !ok {
-					break
-				}
-				file, err := p.GetFile(stat.s.ID)
-				if err != nil {
-					logrus.Errorln("Get File Failed:", err)
-				}
-				fileCh <- warpFile{
-					f:      &file,
-					output: stat.output,
-				}
-				statDone <- struct{}{}
-			}
-		}(fileCh, statCh, statDone)
-	}
-
-	if progress {
-		pb := mpb.New(mpb.WithAutoRefresh())
-		for i := 0; i < count; i++ {
-			// if progress is true then show progress bar
-			go download(fileCh, fileDone, pb)
-		}
-	} else {
-		go download(fileCh, fileDone, nil)
-	}
-
-	for i := 0; i < len(collectStat); i += 1 {
-		err := utils.CreateDirIfNotExist(collectStat[i].output)
-		if err != nil {
-			logrus.Errorln("Create output directory failed:", err)
-			return
-		}
-		statCh <- collectStat[i]
-	}
-	close(statCh)
-
-	for i := 0; i < len(collectStat); i += 1 {
-		<-statDone
-	}
-	close(statDone)
-
-	for i := 0; i < len(collectStat); i += 1 {
-		<-fileDone
-	}
+	return collectStat, nil
 }
 
 func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, parentPath string) {
@@ -155,161 +127,69 @@ func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, p
 		if r.Kind == "drive#folder" {
 			recursive(p, collectWarpFile, r.ID, filepath.Join(parentPath, r.Name))
 		} else {
-			// file, _ := p.GetFile(r.ID)
 			*collectWarpFile = append(*collectWarpFile, warpStat{
 				s:      r,
 				output: parentPath,
 			})
-			// fmt.Println(r.Name, r.Size, r.Kind, parentPath)
 		}
 	}
 }
 
-func downloadFile(p *pikpak.PikPak, args []string) {
+func collectFileStat(p *pikpak.PikPak, args []string) ([]warpStat, error) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(folder)
 		if err != nil {
-			logrus.Errorln("get folder failed:", err)
-			return
+			return nil, err
 		}
 	}
 
-	// if output not exists then create.
-	if err := utils.CreateDirIfNotExist(output); err != nil {
-		logrus.Errorln("Create output directory failed:", err)
-		return
-	}
+	collectStat := make([]warpStat, 0, len(args))
 
-	sendCh := make(chan warpFile, 1)
-	receiveCh := make(chan struct{}, len(args))
-
-	if progress {
-		pb := mpb.New(mpb.WithAutoRefresh())
-		for i := 0; i < count; i++ {
-			// if progress is true then show progress bar
-			go download(sendCh, receiveCh, pb)
-		}
-	} else {
-		go download(sendCh, receiveCh, nil)
-	}
-
-	for i := 0; i < count; i++ {
-		// if progress is true then show progress bar
-		switch progress {
-		case true:
-			go download(sendCh, receiveCh, mpb.New(mpb.WithAutoRefresh()))
-		case false:
-			go download(sendCh, receiveCh, nil)
-		}
-	}
 	for _, path := range args {
 		stat, err := p.GetFileStat(parentId, path)
 		if err != nil {
 			logrus.Errorln(path, "get parent id failed:", err)
 			continue
 		}
-
-		file, err := p.GetFile(stat.ID)
-		if err != nil {
-			logrus.Errorln(path, "get file failed", err)
-			continue
-		}
-		sendCh <- warpFile{
-			f:      &file,
+		collectStat = append(collectStat, warpStat{
+			s:      stat,
 			output: output,
-		}
+		})
 	}
-	close(sendCh)
-	for i := 0; i < len(args); i++ {
-		<-receiveCh
-	}
-	close(receiveCh)
+	return collectStat, nil
 }
 
-func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
-	for {
-		warp, ok := <-inCh
-		if !ok {
-			break
-		}
+func download(inCh <-chan warpFile, wait *sync.WaitGroup) {
+	defer wait.Done()
+	for warp := range inCh {
+		// fmt.Println("in", warp, warp.f.Links.ApplicationOctetStream.URL)
+		utils.CreateDirIfNotExist(warp.output)
 
 		path := filepath.Join(warp.output, warp.f.Name)
-		exist, err := utils.Exists(path)
-		if err != nil {
-			// logrus.Errorln("Access", path, "Failed:", err)
-			out <- struct{}{}
-			continue
-		}
-		flag := path + ".pikpakclidownload"
-		hasFlag, err := utils.Exists(flag)
-		if err != nil {
-			// logrus.Errorln("Access", flag, "Failed:", err)
-			out <- struct{}{}
-			continue
-		}
-		if exist && !hasFlag {
-			// logrus.Infoln("Skip downloaded file", warp.f.Name)
-			out <- struct{}{}
-			continue
-		}
-		err = utils.TouchFile(flag)
-		if err != nil {
-			// logrus.Errorln("Create flag file", flag, "Failed:", err)
-			out <- struct{}{}
-			continue
-		}
-
-		siz, err := strconv.ParseInt(warp.f.Size, 10, 64)
-		if err != nil {
-			// logrus.Errorln("Parse File size", warp.f.Size, "Failed:", err)
-			out <- struct{}{}
-			continue
-		}
-
-		var bar *mpb.Bar = nil
-
-		// This is simple way to display part names
-		// It may be replaced one day.
-		trimeName := func(name string) string {
-			// Fixed value, which is an unwise approach.
-			maxLen := 30
-			if utf8.RuneCountInString(name)+3 > maxLen {
-				return name[:maxLen-3] + "..."
+		exist, _ := utils.Exists(path)
+		if exist {
+			st, err := os.Stat(path)
+			if err != nil {
+				continue
 			}
-			return name
-		}
+			remoteSize, _ := strconv.ParseInt(warp.f.Size, 10, 64)
 
-		if pb != nil {
-			bar = pb.AddBar(siz,
-				mpb.PrependDecorators(
-					decor.Name(trimeName(warp.f.Name)),
-					decor.Percentage(decor.WCSyncSpace),
-				),
-				mpb.AppendDecorators(
-					decor.EwmaETA(decor.ET_STYLE_GO, 30),
-					decor.Name(" ] "),
-					decor.EwmaSpeed(decor.SizeB1024(0), "% .2f", 60),
-				),
-			)
-		}
-
-		// start downloading
-		err = warp.f.Download(path, bar)
-		// if hasn't error then remove flag file
-		if err == nil {
-			if pb == nil {
-				logrus.Infoln("Download", warp.f.Name, "Success")
-			}
-			os.Remove(flag)
-		} else {
-			if pb == nil {
-				logrus.Errorln("Download", warp.f.Name, "Failed:", err)
+			// if the file size is the same, skip downloading
+			if st.Size() == remoteSize {
+				continue
 			}
 		}
-		if bar != nil {
-			bar.Abort(true)
+
+		dw, err := fastdown.NewDownloadWrapper(warp.f.Links.ApplicationOctetStream.URL, 12, warp.output, warp.f.Name)
+		if err != nil {
+			logrus.Errorln("New download wrapper failed:", err)
+			continue
 		}
-		out <- struct{}{}
+		err = dw.Download()
+		if err != nil {
+			logrus.Errorln("Download", warp.f.Name, "failed", err)
+			continue
+		}
 	}
 }
