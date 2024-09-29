@@ -1,7 +1,9 @@
 github.com/52funny/fastdown v0.0.0-20240929014321-44d83625fa59 h1:opDgCJiBAdSXgXYiWiqVJMRyRob3saoxSjNXadil1M4=
 github.com/52funny/fastdown v0.0.0-20240929014321-44d83625fa59/go.mod h1:97lnvI+R3CkbZxR6uHxGeHkCSMeC9uAKnxT+u1zn4d0=
-github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c h1:ecJG8tmvgH6exVE4+I3rFPPA1Mk3/lNb8VZ6A7dtcyI=
-github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c/go.mod h1:YA/IS8XUrMTcrY+J4yOJ3CDgoyQ28NOOo4GnzOL6bTI=
+github.com/52funny/pikpakapi v0.0.0-20240923033422-d105d48371a0 h1:NXniO0MPxX2F7Y8snamBAy2pXQmMjQiMBUYH75zfiS8=
+github.com/52funny/pikpakapi v0.0.0-20240923033422-d105d48371a0/go.mod h1:O9wOf/mN/PMAgR/p634DDIM9al8qSmN+DDUk0TvZ3nU=
+github.com/52funny/pikpakhash v0.0.0-20231105124054-e75c5c6694c2 h1:iKBUZ8YkxBfRooJNKyS1xT/BC4EBqvIWxMOTxDv00pk=
+github.com/52funny/pikpakhash v0.0.0-20231105124054-e75c5c6694c2/go.mod h1:YA/IS8XUrMTcrY+J4yOJ3CDgoyQ28NOOo4GnzOL6bTI=
 github.com/VividCortex/ewma v1.2.0 h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1ow=
 github.com/VividCortex/ewma v1.2.0/go.mod h1:nz4BbCtbLyFDeC9SUHbtcT5644juEuWfUAUnGx7j5l4=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=
@@ -15,6 +17,8 @@ github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBD
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/inconshreveable/mousetrap v1.0.1 h1:U3uMjPSQEBMNp1lFxmllqCPM6P5u/Xq7Pgzkat/bFNc=
 github.com/inconshreveable/mousetrap v1.0.1/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
@@ -45,8 +49,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/tidwall/gjson v1.14.4 h1:uo0p8EbA09J7RQaflQ1aBRffTR7xedD2bcIVSYxLnkM=
-github.com/tidwall/gjson v1.14.4/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
+github.com/tidwall/gjson v1.17.3 h1:bwWLZU7icoKRG+C+0PNwIKC6FCJO/Q3p2pZvuP0jN94=
+github.com/tidwall/gjson v1.17.3/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
 github.com/tidwall/match v1.1.1/go.mod h1:eRSPERbgtNPcGhD8UCthc6PmLEQXEWd3PRB5JTxsfmM=
 github.com/tidwall/pretty v1.2.0 h1:RWIZEg2iJ8/g6fDDYzMpobmaoGh5OLl4AXtGUGPcqCs=
