@@ -1,16 +1,17 @@
 module github.com/52funny/pikpakcli
 
-go 1.22.5
+go 1.23.0
 
 require (
 	github.com/52funny/fastdown v0.0.0-20240929014321-44d83625fa59
-	github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c
+	github.com/52funny/pikpakapi v0.0.0-20240923033422-d105d48371a0
+	github.com/52funny/pikpakhash v0.0.0-20231105124054-e75c5c6694c2
 	github.com/fatih/color v1.15.0
 	github.com/json-iterator/go v1.1.12
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.9.0
-	github.com/tidwall/gjson v1.14.4
+	github.com/tidwall/gjson v1.17.3
 	github.com/vbauerster/mpb/v8 v8.7.2
 	gopkg.in/yaml.v2 v2.4.0
 )

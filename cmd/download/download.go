@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/52funny/fastdown"
+	"github.com/52funny/pikpakapi"
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,12 +36,12 @@ var parentId string
 var output string
 
 type warpFile struct {
-	f      *pikpak.File
+	f      *pikpakapi.File
 	output string
 }
 
 type warpStat struct {
-	s      pikpak.FileStat
+	s      pikpakapi.FileStat
 	output string
 }
 
@@ -57,11 +57,20 @@ var DownloadCmd = &cobra.Command{
 	Aliases: []string{"d"},
 	Short:   `Download file from pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := pikpakapi.NewPikPak(conf.Config.Username, conf.Config.Password)
+
+		// Setup proxy
+		if conf.Config.Proxy != "" {
+			p.SetProxy(conf.Config.Proxy)
+		}
+
+		// Login
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
 		}
+		logrus.Debugln("Login Success")
+
 		var collectStat []warpStat
 		if len(args) > 0 {
 			cst, err := collectFileStat(&p, args)
@@ -80,9 +89,9 @@ var DownloadCmd = &cobra.Command{
 		}
 
 		for _, st := range collectStat {
-			logrus.Infoln("Download:", st.output, st.s.Name)
+			logrus.Infoln("Download:", st.s.Name)
 		}
-		in := make(chan warpFile, count)
+		in := make(chan warpFile, 1)
 		wait := new(sync.WaitGroup)
 
 		for i := 0; i < count; i++ {
@@ -95,6 +104,7 @@ var DownloadCmd = &cobra.Command{
 				logrus.Errorln("Get File Failed:", err)
 				continue
 			}
+			logrus.Debug("Send to channel:", f.Name)
 			in <- warpFile{
 				f:      &f,
 				output: st.output,
@@ -106,11 +116,11 @@ var DownloadCmd = &cobra.Command{
 }
 
 // Downloads all files in the specified directory
-func collectFolderStat(p *pikpak.PikPak) ([]warpStat, error) {
+func collectFolderStat(p *pikpakapi.PikPak) ([]warpStat, error) {
 	base := filepath.Base(folder)
 	var err error
 	if parentId == "" {
-		parentId, err = p.GetPathFolderId(folder)
+		parentId, err = p.GetDirID(pikpakapi.NewPath(folder))
 		if err != nil {
 			return nil, err
 		}
@@ -120,8 +130,8 @@ func collectFolderStat(p *pikpak.PikPak) ([]warpStat, error) {
 	return collectStat, nil
 }
 
-func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, parentPath string) {
-	statList, err := p.GetFolderFileStatList(parentId)
+func recursive(p *pikpakapi.PikPak, collectWarpFile *[]warpStat, parentId string, parentPath string) {
+	statList, err := p.GetDirFilesStat(parentId)
 	if err != nil {
 		logrus.Errorln("Get Folder File Stat List Failed:", err)
 		return
@@ -138,10 +148,10 @@ func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, p
 	}
 }
 
-func collectFileStat(p *pikpak.PikPak, args []string) ([]warpStat, error) {
+func collectFileStat(p *pikpakapi.PikPak, args []string) ([]warpStat, error) {
 	var err error
 	if parentId == "" {
-		parentId, err = p.GetPathFolderId(folder)
+		parentId, err = p.GetDirID(pikpakapi.NewPath(folder))
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +160,7 @@ func collectFileStat(p *pikpak.PikPak, args []string) ([]warpStat, error) {
 	collectStat := make([]warpStat, 0, len(args))
 
 	for _, path := range args {
-		stat, err := p.GetFileStat(parentId, path)
+		stat, err := p.GetFileStatByPath(pikpakapi.NewPath(path))
 		if err != nil {
 			logrus.Errorln(path, "get parent id failed:", err)
 			continue
@@ -171,23 +181,22 @@ func download(inCh <-chan warpFile, wait *sync.WaitGroup) {
 
 		path := filepath.Join(warp.output, warp.f.Name)
 		exist, _ := utils.Exists(path)
+		sz, err := strconv.ParseInt(warp.f.Size, 10, 64)
+		if err != nil {
+			logrus.Errorln("ParseInt", warp.f.Size, "failed", err)
+			continue
+		}
+
 		if exist {
 			st, err := os.Stat(path)
 			if err != nil {
 				continue
 			}
-			remoteSize, _ := strconv.ParseInt(warp.f.Size, 10, 64)
 
 			// if the file size is the same, skip downloading
-			if st.Size() == remoteSize {
+			if st.Size() == sz {
 				continue
 			}
-		}
-
-		sz, err := strconv.ParseInt(warp.f.Size, 10, 64)
-		if err != nil {
-			logrus.Errorln("ParseInt", warp.f.Size, "failed", err)
-			continue
 		}
 		dw := fastdown.NewDownloadWrapper(warp.f.Links.ApplicationOctetStream.URL, maxRoutine, sz, warp.output, warp.f.Name)
 		err = dw.Download()
