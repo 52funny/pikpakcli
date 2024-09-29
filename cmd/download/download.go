@@ -19,6 +19,9 @@ import (
 // default 1
 var count int
 
+// Number of go routines are used to download each file
+var maxRoutine int = 1
+
 // Specifies the folder of the pikpak server
 //
 // default server root directory (.)
@@ -181,11 +184,12 @@ func download(inCh <-chan warpFile, wait *sync.WaitGroup) {
 			}
 		}
 
-		dw, err := fastdown.NewDownloadWrapper(warp.f.Links.ApplicationOctetStream.URL, 12, warp.output, warp.f.Name)
+		sz, err := strconv.ParseInt(warp.f.Size, 10, 64)
 		if err != nil {
-			logrus.Errorln("New download wrapper failed:", err)
+			logrus.Errorln("ParseInt", warp.f.Size, "failed", err)
 			continue
 		}
+		dw := fastdown.NewDownloadWrapper(warp.f.Links.ApplicationOctetStream.URL, maxRoutine, sz, warp.output, warp.f.Name)
 		err = dw.Download()
 		if err != nil {
 			logrus.Errorln("Download", warp.f.Name, "failed", err)

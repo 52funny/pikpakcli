@@ -1,5 +1,5 @@
-github.com/52funny/fastdown v0.0.0-20240922141535-b9982d970a9d h1:lcDI78hsjJjq96Uo7DKcUiGf5c1MY6EkapyPr7RSnqU=
-github.com/52funny/fastdown v0.0.0-20240922141535-b9982d970a9d/go.mod h1:X/tIbdoRedE29WSEneKIYR8+SsUObqjn6S/LRFUPeFw=
+github.com/52funny/fastdown v0.0.0-20240929014321-44d83625fa59 h1:opDgCJiBAdSXgXYiWiqVJMRyRob3saoxSjNXadil1M4=
+github.com/52funny/fastdown v0.0.0-20240929014321-44d83625fa59/go.mod h1:97lnvI+R3CkbZxR6uHxGeHkCSMeC9uAKnxT+u1zn4d0=
 github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c h1:ecJG8tmvgH6exVE4+I3rFPPA1Mk3/lNb8VZ6A7dtcyI=
 github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c/go.mod h1:YA/IS8XUrMTcrY+J4yOJ3CDgoyQ28NOOo4GnzOL6bTI=
 github.com/VividCortex/ewma v1.2.0 h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1ow=
@@ -53,6 +53,8 @@ github.com/tidwall/pretty v1.2.0 h1:RWIZEg2iJ8/g6fDDYzMpobmaoGh5OLl4AXtGUGPcqCs=
 github.com/tidwall/pretty v1.2.0/go.mod h1:ITEVvHYasfjBbM0u2Pg8T2nJnzm8xPwvNhhsoaGGjNU=
 github.com/vbauerster/mpb/v8 v8.7.2 h1:SMJtxhNho1MV3OuFgS1DAzhANN1Ejc5Ct+0iSaIkB14=
 github.com/vbauerster/mpb/v8 v8.7.2/go.mod h1:ZFnrjzspgDHoxYLGvxIruiNk73GNTPG4YHgVNpR10VY=
+golang.org/x/sync v0.8.0 h1:3NFvSEYkUoMifnESzZl15y791HH1qU2xm6eCJU5ZPXQ=
+golang.org/x/sync v0.8.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
 golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.16.0 h1:xWw16ngr6ZMtmxDyKyIgsE93KNKz5HKmMa3b8ALHidU=
