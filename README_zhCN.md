@@ -5,13 +5,13 @@
 
 PikPakCli 是 PikPak 的命令行工具。
 
+![Build from source code.](./images/build.gif)
+
 ## 安装方法
 
 ### 从源码编译
 
-首先你得拥有 go 的环境
-
-[go install guide](https://go.dev/doc/install)
+要从源代码构建该工具，请确保您的系统已安装 [Go](https://go.dev/doc/install) 环境。
 
 克隆项目
 

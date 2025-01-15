@@ -7,13 +7,13 @@ English | [简体中文](https://github.com/52funny/pikpakcli/blob/master/README
 
 PikPakCli is a command line tool for Pikpak Cloud.
 
+![Build from source code.](./images/build.gif)
+
 ## Installation
 
 ### Compiling from source code
 
-First, make sure you have the Go environment set up.
-
-[Go Install Guide](https://go.dev/doc/install)
+To build the tool from the source code, ensure you have [Go](https://go.dev/doc/install) installed on your system.
 
 Clone the project:
 
@@ -27,7 +27,7 @@ Build the project:
 go build
 ```
 
-Run:
+Run the tool:
 
 ```
 ./pikpakcli
@@ -35,7 +35,7 @@ Run:
 
 ### Download from Release
 
-Download the executable file you need from the Releases page, then run it.
+Download the executable file you need from the [Releases](https://github.com/52funny/pikpakcli/releases) page, then run it.
 
 ## Configuration
 
