@@ -59,6 +59,8 @@ var path string
 
 var parentId string
 
+var name string
+
 var input string
 
 var cli bool
@@ -66,6 +68,7 @@ var cli bool
 func init() {
 	NewUrlCommand.Flags().StringVarP(&path, "path", "p", "/", "The path of the folder")
 	NewUrlCommand.Flags().StringVarP(&parentId, "parent-id", "P", "", "The parent id")
+	NewUrlCommand.Flags().StringVarP(&name, "name", "n", "", "The name of the task")
 	NewUrlCommand.Flags().StringVarP(&input, "input", "i", "", "The input of the sha file")
 	NewUrlCommand.Flags().BoolVarP(&cli, "cli", "c", false, "The cli mode")
 }
@@ -81,7 +84,7 @@ func handleNewUrl(p *pikpak.PikPak, shas []string) {
 		}
 	}
 	for _, url := range shas {
-		err := p.CreateUrlFile(parentId, url)
+		err := p.CreateUrlFile(parentId, url, name)
 		if err != nil {
 			logrus.Errorln("Create url file failed: ", err)
 			continue
@@ -108,7 +111,7 @@ func handleCli(p *pikpak.PikPak) {
 			break
 		}
 		url := string(lineBytes)
-		err = p.CreateUrlFile(parentId, url)
+		err = p.CreateUrlFile(parentId, url, name)
 		if err != nil {
 			logrus.Errorln("Create url file failed: ", err)
 			continue
