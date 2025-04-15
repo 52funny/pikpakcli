@@ -120,3 +120,23 @@
   ```bash
   pikpakcli ls -lH -p /
   ```
+
+## 删除
+
+- 删除指定文件
+
+  ```bash
+  pikpakcli delete Movies/Peppa_Pig.mp4
+  ```
+
+- 删除指定目录中的文件
+
+  ```bash
+  pikpakcli delete -p 文件夹路径 文件名
+  ```
+
+- 同时删除多个文件
+
+  ```bash
+  pikpakcli delete -p 文件夹路径 文件1 文件2
+  ```
