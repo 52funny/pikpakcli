@@ -39,6 +39,7 @@ var QuotaCmd = &cobra.Command{
 func init() {
 	QuotaCmd.Flags().BoolVarP(&human, "human", "H", false, "display human readable format")
 }
+
 func displayStorage(s string) string {
 	size, _ := strconv.ParseFloat(s, 64)
 	cnt := 0
