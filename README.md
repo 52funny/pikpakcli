@@ -33,6 +33,19 @@ Run the tool:
 ./pikpakcli
 ```
 
+### Build with Docker
+You can also build and run PikPakCli using Docker.
+Build the Docker image:
+
+```bash
+./docker_build.sh
+```
+
+Run the tool:
+```bash
+docker run --rm pikpakcli:latest --help
+```
+
 ### Download from Release
 
 Download the executable file you need from the [Releases](https://github.com/52funny/pikpakcli/releases) page, then run it.
@@ -50,6 +63,14 @@ The configuration file will first be read from the current directory (`config.ym
 - Linux: `$HOME/.config/pikpakcli`
 - Darwin: `$HOME/Library/Application Support/pikpakcli`
 - Windows: `%AppData%/pikpakcli`
+
+> **For Docker Users:** You need to mount the configuration file into the Docker container. For example, if your `config.yml` is located at `/path/to/your/config.yml`, you can run the Docker container like this:
+
+```bash
+docker run -v /path/to/your/config.yml:/root/.config/pikpakcli/config.yml pikpakcli:latest ls
+# if your config.yml is in the project directory, you can just run:
+docker run -v $PWD/config.yml:/root/.config/pikpakcli/config.yml pikpakcli:latest ls
+```
 
 ## Get started
 

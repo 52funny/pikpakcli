@@ -1,5 +1,7 @@
 # Command Usage
 
+> For docker users, please refer to the [Docker Command Usage](docs/command_docker.md).
+
 ## Upload
 
 - Uploads all files in the local directory to the Movies folder.
