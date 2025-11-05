@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (p *PikPak) CreateUrlFile(parentId, url string) error {
+func (p *PikPak) CreateUrlFile(parentId, url string, name string) error {
 	m := map[string]interface{}{
 		"kind":        "drive#file",
 		"upload_type": "UPLOAD_TYPE_URL",
@@ -19,6 +19,9 @@ func (p *PikPak) CreateUrlFile(parentId, url string) error {
 	}
 	if parentId != "" {
 		m["parent_id"] = parentId
+	}
+	if name != "" {
+		m["name"] = name
 	}
 	bs, err := jsoniter.Marshal(&m)
 	if err != nil {
