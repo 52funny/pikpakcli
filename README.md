@@ -34,16 +34,16 @@ Run the tool:
 ```
 
 ### Build with Docker
-You can also build and run PikPakCli using Docker.
-Build the Docker image:
+You can also run `pikpakcli` using Docker.
+Pull the Docker image:
 
 ```bash
-./docker_build.sh
+docker pull 52funny/pikpakcli:master
 ```
 
 Run the tool:
 ```bash
-docker run --rm pikpakcli:latest --help
+docker run --rm 52funny/pikpakcli:master --help
 ```
 
 ### Download from Release
