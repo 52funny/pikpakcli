@@ -173,3 +173,21 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 	}
 	return fileInfo, err
 }
+
+func (p *PikPak) DeleteFile(fileId string) error {
+	req, err := http.NewRequest("DELETE", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Captcha-Token", p.CaptchaToken)
+	req.Header.Set("X-Device-Id", p.DeviceId)
+	bs, err := p.sendRequest(req)
+	if err != nil {
+		return err
+	}
+	error_code := gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error_code").Int()
+	if error_code != 0 {
+		return errors.New(gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error").String() + ":" + fileId)
+	}
+	return nil
+}

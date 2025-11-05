@@ -10,7 +10,7 @@ import (
 	"github.com/52funny/pikpakcli/cmd/quota"
 	"github.com/52funny/pikpakcli/cmd/share"
 	"github.com/52funny/pikpakcli/cmd/upload"
-
+	del "github.com/52funny/pikpakcli/cmd/del"
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -53,6 +53,7 @@ func init() {
 	rootCmd.AddCommand(embed.EmbedCmd)
 	rootCmd.AddCommand(quota.QuotaCmd)
 	rootCmd.AddCommand(list.ListCmd)
+	rootCmd.AddCommand(del.DeleteCmd)
 }
 
 // Execute the command line interface
