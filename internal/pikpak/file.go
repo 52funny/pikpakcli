@@ -1,10 +1,12 @@
 package pikpak
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -141,6 +143,34 @@ func (p *PikPak) GetFileStat(parentId string, name string) (FileStat, error) {
 	return FileStat{}, errors.New("file not found")
 }
 
+func (p *PikPak) GetFileByPath(path string) (FileStat, error) {
+	if path == "/" || path == "" {
+		// Cannot rename root
+		return FileStat{}, errors.New("cannot get info of root directory")
+	}
+	// Normalize path
+	if path[0] == '/' {
+		path = path[1:]
+	}
+	parts := strings.Split(path, "/")
+	currentParentId := ""
+	var currentFileStat FileStat
+	var err error
+
+	for i, part := range parts {
+		currentFileStat, err = p.GetFileStat(currentParentId, part)
+		if err != nil {
+			return FileStat{}, err
+		}
+		currentParentId = currentFileStat.ID
+		if i == len(parts)-1 {
+			return currentFileStat, nil
+		}
+	}
+	return FileStat{}, errors.New("file not found")
+}
+
+
 func (p *PikPak) GetFile(fileId string) (File, error) {
 	var fileInfo File
 	query := url.Values{}
@@ -173,3 +203,46 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 	}
 	return fileInfo, err
 }
+
+func (p *PikPak) Rename(fileId string, newName string) error {
+	apiUrl := "https://api-drive.mypikpak.com/drive/v1/files/" + fileId
+	body := map[string]string{"name": newName}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	// Allow one retry after captcha refresh
+	for i := 0; i < 2; i++ {
+		req, err := http.NewRequest("PATCH", apiUrl, bytes.NewBuffer(jsonBody))
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Captcha-Token", p.CaptchaToken)
+		req.Header.Set("X-Device-Id", p.DeviceId)
+
+		bs, err := p.sendRequest(req)
+		if err != nil {
+			return err
+		}
+
+		errorCode := gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error_code").Int()
+		if errorCode == 0 {
+			return nil // Success
+		}
+
+		if errorCode == 9 {
+			err = p.AuthCaptchaToken("PATCH:/drive/v1/files")
+			if err != nil {
+				return err // Failed to refresh token
+			}
+			// if token refreshed successfully, loop will retry the request
+			continue
+		}
+		return errors.New(gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error").String())
+	}
+	return errors.New("failed to rename file after captcha refresh")
+}
+
