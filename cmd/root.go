@@ -62,3 +62,15 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+// ExecuteShell: Interactive shell
+func ExecuteShell(shellStarter func(*cobra.Command)) {
+	// Init Config
+	err := conf.InitConfig("config.yml")
+	if err != nil {
+		logrus.Errorln(err)
+		os.Exit(1)
+	}
+	// Exec shell
+	shellStarter(rootCmd)
+}
