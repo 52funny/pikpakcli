@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/52funny/pikpakcli/conf"
+	"github.com/52funny/pikpakcli/internal/pikpak"
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -16,9 +18,13 @@ func Start(rootCmd *cobra.Command) {
 	fmt.Println("Type 'help' for available commands, 'exit' to quit")
 	fmt.Println()
 
+	currentPath := "/"
+	globalPath := "/"
+	// globalPath := currentPath
+
 	// Create readline instance
 	// TODO: we can add path here: pikpak {path} >.
-	l, err := readline.New("pikpak > ")
+	l, err := readline.New(fmt.Sprintf("pikpak %s > ", currentPath))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing readline: %v\n", err)
 		return
@@ -27,6 +33,8 @@ func Start(rootCmd *cobra.Command) {
 
 	for {
 		input, err := l.Readline()
+
+		// l.SetPrompt(fmt.Sprintf("pikpak %s > ", currentPath))
 
 		// Handle EOF (Ctrl+D)
 		if err == readline.ErrInterrupt {
@@ -55,8 +63,62 @@ func Start(rootCmd *cobra.Command) {
 			continue
 		}
 
+		// Handle cd command
+		if strings.HasPrefix(input, "cd ") {
+			path := strings.TrimSpace(input[3:])
+			// Go back to root if target path is empty, ~ or /
+			switch path {
+			case "", "~", "/":
+				currentPath = "/"
+				globalPath = currentPath
+			case "..":
+				// Go back to parent directory
+				if currentPath != "/" {
+					currentPath = currentPath[:strings.LastIndex(currentPath, "/")]
+					globalPath = currentPath + "/"
+					if currentPath == "" {
+						currentPath = "/"
+						globalPath = currentPath
+					}
+				}
+
+				// Update the prompt with the new path
+				l.SetPrompt(fmt.Sprintf("pikpak %s > ", globalPath))
+			default:
+				// Check if the path exists and is a directory
+				p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+				err := p.Login()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Login failed: %v\n", err)
+					continue
+				}
+				targetPath := currentPath + "/" + path
+				targetPath = strings.ReplaceAll(targetPath, "//", "/")
+				if targetPath != "/" {
+					targetPath = strings.TrimSuffix(targetPath, "/")
+				}
+				_, err = p.GetPathFolderId(targetPath)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "cd: %s: No such directory\n", targetPath)
+					continue
+				}
+				currentPath = targetPath
+				globalPath = currentPath + "/"
+				// Update the prompt with the new path
+				l.SetPrompt(fmt.Sprintf("pikpak %s > ", globalPath))
+			}
+
+			continue
+		}
+
 		// Parse the args and set them to rootCmd
 		args := parseShellArgs(input)
+
+		// For ls command, if no path specified, add current path
+		if len(args) == 1 && args[0] == "ls" {
+			args = append(args, "-p", currentPath)
+		}
+
 		rootCmd.SetArgs(args)
 
 		// Directly use pre-defined Execute function
