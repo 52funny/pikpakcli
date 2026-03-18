@@ -54,7 +54,7 @@ func displayStorage(s string) string {
 }
 
 func displayCloudDownload(cloudDownload pikpak.Quota) {
-	fmt.Println("cloud download:")
+	fmt.Printf("\ncloud download:\n")
 	fmt.Printf("%-20s%-20s%-20s\n", "total", "used", "remaining")
 	remaining, err := cloudDownload.Remaining()
 	if err != nil {
