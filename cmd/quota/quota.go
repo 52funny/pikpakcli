@@ -20,6 +20,7 @@ var QuotaCmd = &cobra.Command{
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
+			return // 加上这行，否则会继续执行
 		}
 		q, err := p.GetQuota()
 		if err != nil {
@@ -27,12 +28,13 @@ var QuotaCmd = &cobra.Command{
 			return
 		}
 		fmt.Printf("%-20s%-20s\n", "total", "used")
-		switch human {
-		case true:
-			fmt.Printf("%-20s%-20s\n", displayStorage(q.Limit), displayStorage(q.Usage))
-		case false:
-			fmt.Printf("%-20s%-20s\n", q.Limit, q.Usage)
+		if human {
+			fmt.Printf("%-20s%-20s\n", displayStorage(q.Quota.Limit), displayStorage(q.Quota.Usage))
+		} else {
+			fmt.Printf("%-20s%-20s\n", q.Quota.Limit, q.Quota.Usage)
 		}
+
+		displayCloudDownload(q.Quotas.CloudDownload)
 	},
 }
 
@@ -40,30 +42,22 @@ func init() {
 	QuotaCmd.Flags().BoolVarP(&human, "human", "H", false, "display human readable format")
 }
 func displayStorage(s string) string {
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
 	size, _ := strconv.ParseFloat(s, 64)
 	cnt := 0
-	for size > 1024 {
-		cnt += 1
-		if cnt > 5 {
-			break
-		}
+	for size > 1024 && cnt < len(units)-1 {
 		size /= 1024
+		cnt++
 	}
-	// res := strconv.Itoa(int(size))
-	res := strconv.FormatFloat(size, 'g', 2, 64)
-	switch cnt {
-	case 0:
-		res += "B"
-	case 1:
-		res += "KB"
-	case 2:
-		res += "MB"
-	case 3:
-		res += "GB"
-	case 4:
-		res += "TB"
-	case 5:
-		res += "PB"
+	return strconv.FormatFloat(size, 'g', 2, 64) + units[cnt]
+}
+
+func displayCloudDownload(cloudDownload pikpak.Quota) {
+	fmt.Println("cloud download:")
+	remaining, err := cloudDownload.Remaining()
+	if err != nil {
+		fmt.Printf("%-20s%-20s%-20s\n", cloudDownload.Limit, cloudDownload.Usage, "N/A")
+		return
 	}
-	return res
+	fmt.Printf("%-20s%-20s%-20d\n", cloudDownload.Limit, cloudDownload.Usage, remaining)
 }
