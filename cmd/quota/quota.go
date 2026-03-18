@@ -27,6 +27,7 @@ var QuotaCmd = &cobra.Command{
 			logrus.Errorln("get cloud quota error:", err)
 			return
 		}
+		fmt.Println("Storage:")
 		fmt.Printf("%-20s%-20s\n", "total", "used")
 		if human {
 			fmt.Printf("%-20s%-20s\n", displayStorage(q.Quota.Limit), displayStorage(q.Quota.Usage))
@@ -54,6 +55,7 @@ func displayStorage(s string) string {
 
 func displayCloudDownload(cloudDownload pikpak.Quota) {
 	fmt.Println("cloud download:")
+	fmt.Printf("%-20s%-20s%-20s\n", "total", "used", "remaining")
 	remaining, err := cloudDownload.Remaining()
 	if err != nil {
 		fmt.Printf("%-20s%-20s%-20s\n", cloudDownload.Limit, cloudDownload.Usage, "N/A")
