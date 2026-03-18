@@ -25,7 +25,11 @@ var ListCmd = &cobra.Command{
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
 		}
-		handle(&p, args)
+		long, _ := cmd.Flags().GetBool("long")
+		human, _ := cmd.Flags().GetBool("human")
+		path, _ := cmd.Flags().GetString("path")
+		parentId, _ := cmd.Flags().GetString("parent-id")
+		handle(&p, args, long, human, path, parentId)
 	},
 }
 
@@ -36,8 +40,11 @@ func init() {
 	ListCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "display the specified parent id")
 }
 
-func handle(p *pikpak.PikPak, args []string) {
+func handle(p *pikpak.PikPak, args []string, long, human bool, path, parentId string) {
 	var err error
+	if len(args) > 0 {
+		path = args[0]
+	}
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {

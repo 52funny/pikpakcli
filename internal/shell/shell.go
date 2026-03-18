@@ -7,6 +7,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // Start starts the interactive shell
@@ -64,6 +65,9 @@ func Start(rootCmd *cobra.Command) {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
 		rootCmd.SetArgs([]string{}) // Reset for next iteration
+
+		// Reset flags to default values to prevent state retention between commands
+		resetFlags(rootCmd)
 	}
 }
 
@@ -107,6 +111,18 @@ func parseShellArgs(input string) []string {
 	if current.Len() > 0 {
 		args = append(args, current.String())
 	}
-
 	return args
+}
+
+// resetFlags recursively resets all flags in the command tree to their default values
+func resetFlags(cmd *cobra.Command) {
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		f.Value.Set(f.DefValue)
+	})
+	cmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+		f.Value.Set(f.DefValue)
+	})
+	for _, subCmd := range cmd.Commands() {
+		resetFlags(subCmd)
+	}
 }
