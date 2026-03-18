@@ -63,9 +63,15 @@ func Start(rootCmd *cobra.Command) {
 			continue
 		}
 
+		// Parse the args and set them to rootCmd
+		args := parseShellArgs(input)
+
 		// Handle cd command
-		if strings.HasPrefix(input, "cd ") {
-			path := strings.TrimSpace(input[3:])
+		if len(args) > 0 && args[0] == "cd" {
+			var path string
+			if len(args) > 1 {
+				path = args[1]
+			}
 			// Go back to root if target path is empty, ~ or /
 			switch path {
 			case "", "~", "/":
@@ -85,17 +91,30 @@ func Start(rootCmd *cobra.Command) {
 				// Update the prompt with the new path
 				l.SetPrompt(fmt.Sprintf("pikpak %s > ", globalPath))
 			default:
+				// Handle relative and absolute paths
+				var targetPath string
+				if strings.HasPrefix(path, "/") {
+					// Absolute path
+					targetPath = path
+				} else {
+					// Relative path
+					if currentPath == "/" {
+						targetPath = "/" + path
+					} else {
+						targetPath = currentPath + "/" + path
+					}
+				}
+				// Normalize path: remove duplicate slashes and trailing slash
+				targetPath = strings.ReplaceAll(targetPath, "//", "/")
+				if targetPath != "/" {
+					targetPath = strings.TrimSuffix(targetPath, "/")
+				}
 				// Check if the path exists and is a directory
 				p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
 				err := p.Login()
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Login failed: %v\n", err)
 					continue
-				}
-				targetPath := currentPath + "/" + path
-				targetPath = strings.ReplaceAll(targetPath, "//", "/")
-				if targetPath != "/" {
-					targetPath = strings.TrimSuffix(targetPath, "/")
 				}
 				_, err = p.GetPathFolderId(targetPath)
 				if err != nil {
@@ -110,9 +129,6 @@ func Start(rootCmd *cobra.Command) {
 
 			continue
 		}
-
-		// Parse the args and set them to rootCmd
-		args := parseShellArgs(input)
 
 		// For ls command, if no path specified, add current path
 		if len(args) == 1 && args[0] == "ls" {
