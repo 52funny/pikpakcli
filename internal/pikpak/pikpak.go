@@ -37,11 +37,11 @@ func NewPikPak(account, password string) PikPak {
 		},
 	}
 	if conf.Config.UseProxy() {
-		url, err := url.Parse(conf.Config.Proxy)
+		proxyUrl, err := url.Parse(conf.Config.Proxy)
 		if err != nil {
 			logrus.Errorln("url parse proxy error", err)
 		}
-		p := http.ProxyURL(url)
+		p := http.ProxyURL(proxyUrl)
 		client.Transport = &http.Transport{
 			Proxy: p,
 		}
@@ -58,7 +58,8 @@ func NewPikPak(account, password string) PikPak {
 	}
 }
 
-func (p *PikPak) Login() error {
+// login 执行完整登录流程
+func (p *PikPak) login() error {
 	captchaToken, err := p.getCaptchaToken()
 	if err != nil {
 		return err
@@ -146,4 +147,24 @@ func (p *PikPak) setHeader(req *http.Request) {
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("X-Device-Id", p.DeviceId)
+}
+
+// Login 优先复用本地 session，必要时才走完整登录
+func (p *PikPak) Login() error {
+	if err := p.loadSession(); err == nil {
+		if !p.isTokenExpired() {
+			logrus.Debugln("session valid, skip login")
+			return nil
+		}
+		logrus.Debugln("access_token expired, trying refresh_token")
+		if err = p.RefreshToken(); err == nil {
+			return p.saveSession()
+		}
+		logrus.Debugln("refresh failed, fallback to full login")
+	}
+	if err := p.login(); err != nil {
+		return err
+	}
+	// 执行了完整登录流程，保存session
+	return p.saveSession()
 }
