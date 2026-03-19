@@ -45,15 +45,22 @@ func init() {
 func displayStorage(s string) string {
 	size, _ := strconv.ParseFloat(s, 64)
 	cnt := 0
-	for size > 1024 {
+	for size >= 1024 {
 		cnt += 1
 		if cnt > 5 {
 			break
 		}
 		size /= 1024
 	}
-	// res := strconv.Itoa(int(size))
-	res := strconv.FormatFloat(size, 'g', 2, 64)
+
+	var res string
+	// 如果是整数则不显示小数点
+	if size == float64(int64(size)) {
+		res = strconv.FormatFloat(size, 'f', 0, 64)
+	} else {
+		res = strconv.FormatFloat(size, 'f', 2, 64)
+	}
+
 	switch cnt {
 	case 0:
 		res += "B"
