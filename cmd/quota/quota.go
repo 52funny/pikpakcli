@@ -43,14 +43,32 @@ func init() {
 	QuotaCmd.Flags().BoolVarP(&human, "human", "H", false, "display human readable format")
 }
 func displayStorage(s string) string {
-	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
 	size, _ := strconv.ParseFloat(s, 64)
 	cnt := 0
-	for size > 1024 && cnt < len(units)-1 {
+	for size > 1024 {
+		cnt += 1
+		if cnt > 5 {
+			break
+		}
 		size /= 1024
-		cnt++
 	}
-	return strconv.FormatFloat(size, 'g', 2, 64) + units[cnt]
+	// res := strconv.Itoa(int(size))
+	res := strconv.FormatFloat(size, 'g', 2, 64)
+	switch cnt {
+	case 0:
+		res += "B"
+	case 1:
+		res += "KB"
+	case 2:
+		res += "MB"
+	case 3:
+		res += "GB"
+	case 4:
+		res += "TB"
+	case 5:
+		res += "PB"
+	}
+	return res
 }
 
 func displayCloudDownload(cloudDownload pikpak.Quota) {
