@@ -120,3 +120,17 @@
   ```bash
   pikpakcli ls -lH -p /
   ```
+
+## 重命名
+
+- 按完整路径重命名文件或文件夹
+
+  ```bash
+  pikpakcli rename /Movies/Peppa_Pig.mp4 Peppa_Pig_S01E01.mp4
+  ```
+
+- 重命名文件夹
+
+  ```bash
+  pikpakcli rename /Movies/Cartoons Kids
+  ```

@@ -123,3 +123,17 @@
   ```bash
   pikpakcli ls -lH -p /
   ```
+
+## Rename
+
+- Rename a file or folder by full path.
+
+  ```bash
+  pikpakcli rename /Movies/Peppa_Pig.mp4 Peppa_Pig_S01E01.mp4
+  ```
+
+- Rename a folder.
+
+  ```bash
+  pikpakcli rename /Movies/Cartoons Kids
+  ```
