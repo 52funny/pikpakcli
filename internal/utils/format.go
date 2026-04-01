@@ -8,7 +8,6 @@ func FormatStorage(sizeText string, human bool) string {
 	if !human {
 		return sizeText
 	}
-
 	size, err := strconv.ParseFloat(sizeText, 64)
 	if err != nil {
 		return sizeText
@@ -20,8 +19,8 @@ func FormatStorage(sizeText string, human bool) string {
 		unit++
 	}
 
-	if unit == 0 {
-		return strconv.FormatInt(int64(size), 10) + storageUnits[unit]
+	if size == float64(int64(size)) {
+		return strconv.FormatFloat(size, 'f', 0, 64) + storageUnits[unit]
 	}
 
 	return strconv.FormatFloat(size, 'f', 2, 64) + storageUnits[unit]

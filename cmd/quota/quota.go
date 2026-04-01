@@ -20,22 +20,36 @@ var QuotaCmd = &cobra.Command{
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
+			return // 加上这行，否则会继续执行
 		}
 		q, err := p.GetQuota()
 		if err != nil {
 			logrus.Errorln("get cloud quota error:", err)
 			return
 		}
+		fmt.Println("Storage:")
 		fmt.Printf("%-20s%-20s\n", "total", "used")
-		switch human {
-		case true:
-			fmt.Printf("%-20s%-20s\n", utils.FormatStorage(q.Limit, true), utils.FormatStorage(q.Usage, true))
-		case false:
-			fmt.Printf("%-20s%-20s\n", q.Limit, q.Usage)
+		if human {
+			fmt.Printf("%-20s%-20s\n", utils.FormatStorage(q.Quota.Limit, true), utils.FormatStorage(q.Quota.Usage, true))
+		} else {
+			fmt.Printf("%-20s%-20s\n", q.Quota.Limit, q.Quota.Usage)
 		}
+
+		displayCloudDownload(q.Quotas.CloudDownload)
 	},
 }
 
 func init() {
 	QuotaCmd.Flags().BoolVarP(&human, "human", "H", false, "display human readable format")
+}
+
+func displayCloudDownload(cloudDownload pikpak.Quota) {
+	fmt.Printf("\ncloud download:\n")
+	fmt.Printf("%-20s%-20s%-20s\n", "total", "used", "remaining")
+	remaining, err := cloudDownload.Remaining()
+	if err != nil {
+		fmt.Printf("%-20s%-20s%-20s\n", cloudDownload.Limit, cloudDownload.Usage, "N/A")
+		return
+	}
+	fmt.Printf("%-20s%-20s%-20d\n", cloudDownload.Limit, cloudDownload.Usage, remaining)
 }
