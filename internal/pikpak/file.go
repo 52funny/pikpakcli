@@ -3,6 +3,7 @@ package pikpak
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -172,4 +173,30 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 		return fileInfo, err
 	}
 	return fileInfo, err
+}
+
+func (p *PikPak) DeleteFile(fileId string) error {
+START:
+	req, err := http.NewRequest("DELETE", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Captcha-Token", p.CaptchaToken)
+	req.Header.Set("X-Device-Id", p.DeviceId)
+	bs, err := p.sendRequest(req)
+	if err != nil {
+		return err
+	}
+	error_code := gjson.GetBytes(bs, "error_code").Int()
+	if error_code != 0 {
+		if error_code == 9 {
+			err = p.AuthCaptchaToken("DELETE:/drive/v1/files")
+			if err != nil {
+				return err
+			}
+			goto START
+		}
+		return fmt.Errorf("%s: %s", gjson.GetBytes(bs, "error").String(), fileId)
+	}
+	return nil
 }
