@@ -20,7 +20,7 @@ var QuotaCmd = &cobra.Command{
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
-			return // 加上这行，否则会继续执行
+			return
 		}
 		q, err := p.GetQuota()
 		if err != nil {

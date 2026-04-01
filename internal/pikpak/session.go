@@ -15,16 +15,16 @@ import (
 
 const sessionExpirySkew = 5 * 60
 
-// sessionData 是持久化到磁盘的数据结构
+// sessionData is the on-disk representation of cached auth tokens.
 type sessionData struct {
 	JwtToken     string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	Sub          string `json:"sub"`
-	// ExpiresAt 是 access_token 的过期 Unix 时间戳（秒）
+	// ExpiresAt stores the access token expiration time as a Unix timestamp in seconds.
 	ExpiresAt int64 `json:"expires_at"`
 }
 
-// saveSession 将当前 token 信息持久化到本地文件
+// saveSession persists the current token state to the local session file.
 func (p *PikPak) saveSession() error {
 	path, err := sessionFile(p.Account)
 	if err != nil {
@@ -37,7 +37,7 @@ func (p *PikPak) saveSession() error {
 		JwtToken:     p.JwtToken,
 		RefreshToken: p.refreshToken,
 		Sub:          p.Sub,
-		// RefreshSecond 是服务端返回的 expires_in（秒），提前 5 分钟视为过期
+		// Treat the token as expired slightly early to avoid using a near-expiry session.
 		ExpiresAt: time.Now().Unix() + p.RefreshSecond - sessionExpirySkew,
 	}
 
@@ -52,8 +52,7 @@ func (p *PikPak) saveSession() error {
 	return nil
 }
 
-// loadSession 从本地文件加载 token，并写回到 PikPak 实例
-// 如果文件不存在或账号不匹配，返回 error
+// loadSession restores cached tokens from disk into the current client.
 func (p *PikPak) loadSession() error {
 	path, err := sessionFile(p.Account)
 	if err != nil {
@@ -76,8 +75,7 @@ func (p *PikPak) loadSession() error {
 	return nil
 }
 
-// isTokenExpired 判断 access_token 是否已过期（或即将过期）
-// RefreshSecond 在 loadSession 后表示距过期的剩余秒数
+// isTokenExpired reports whether the cached access token should be treated as expired.
 func (p *PikPak) isTokenExpired() bool {
 	return p.RefreshSecond <= 0
 }

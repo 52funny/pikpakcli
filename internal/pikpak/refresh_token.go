@@ -34,7 +34,7 @@ func (p *PikPak) RefreshToken() error {
 	if error_code != 0 {
 		// refresh token failed
 		if error_code == 4126 {
-			// 重新登录
+			// Retry with the full login flow when the refresh token is no longer valid.
 			return p.login()
 		}
 		return fmt.Errorf("refresh token error message: %d", gjson.GetBytes(bs, "error").Int())

@@ -58,7 +58,7 @@ func NewPikPak(account, password string) PikPak {
 	}
 }
 
-// login 执行完整登录流程
+// login performs the full credential-based login flow.
 func (p *PikPak) login() error {
 	captchaToken, err := p.getCaptchaToken()
 	if err != nil {
@@ -149,7 +149,7 @@ func (p *PikPak) setHeader(req *http.Request) {
 	req.Header.Set("X-Device-Id", p.DeviceId)
 }
 
-// Login 优先复用本地 session，必要时才走完整登录
+// Login reuses a cached session first and falls back to full login when needed.
 func (p *PikPak) Login() error {
 	if err := p.loadSession(); err == nil {
 		if !p.isTokenExpired() {

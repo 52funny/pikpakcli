@@ -22,7 +22,7 @@ type Quota struct {
 	PlayTimesUsage string `json:"play_times_usage"`
 }
 
-// Remaining 剩余额度
+// Remaining returns the unused quota amount.
 func (q Quota) Remaining() (int64, error) {
 	limit, err := strconv.ParseInt(q.Limit, 10, 64)
 	if err != nil {
