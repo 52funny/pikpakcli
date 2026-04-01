@@ -1,56 +1,33 @@
 package delete
 
 import (
+	"fmt"
+
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var path string
-var err error
-var parentId string
 
 var DeleteCmd = &cobra.Command{
-	Use:   "delete [filename]",
-	Short: "Delete a file or folder on the PikPak server",
+	Use:     "delete [file-or-folder ...]",
+	Aliases: []string{"del", "rm"},
+	Short:   "Delete files or folders on the PikPak server",
+	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			logrus.Error("Please provide a file name to delete")
-			return
-		}
-
 		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
-			logrus.Fatalf("Login Failed: %v", err)
+			logrus.Errorf("Login failed: %v", err)
 			return
 		}
 
-		parentId, err = p.GetPathFolderId(path)
-		if err != nil {
-			logrus.Errorln("get path folder id error:", err)
-			return
-		}
-
-		files, err := p.GetFolderFileStatList(parentId)
-
-		for _, targetName := range args {
-			found := false
-			for _, f := range files {
-				if f.Name == targetName {
-					logrus.Debugf("Matched file: Name=%s, ID=%s, Size=%d", f.Name, f.ID, f.Size)
-					err = p.DeleteFile(f.ID)
-					if err != nil {
-						logrus.Errorf("Failed to delete %s: %v", f.Name, err)
-					} else {
-						logrus.Infof("Deleted: %s", f.Name)
-					}
-					found = true
-					break
-				}
-			}
-			if !found {
-				logrus.Errorf("File not found in %s: %s", path, targetName)
+		flagPathSpecified := cmd.Flags().Changed("path")
+		for parentPath, names := range groupDeleteTargets(args, flagPathSpecified) {
+			if err := deleteEntries(&p, parentPath, names); err != nil {
+				logrus.Error(err)
 			}
 		}
 	},
@@ -58,4 +35,62 @@ var DeleteCmd = &cobra.Command{
 
 func init() {
 	DeleteCmd.Flags().StringVarP(&path, "path", "p", "/", "The path where to look for the file")
+}
+
+func groupDeleteTargets(args []string, forceParentPath bool) map[string][]string {
+	targets := make(map[string][]string)
+	for _, arg := range args {
+		parentPath := path
+		name := arg
+
+		if !forceParentPath {
+			resolvedParentPath, resolvedName := utils.SplitRemotePath(arg)
+			if resolvedName == "" {
+				continue
+			}
+			name = resolvedName
+			if resolvedParentPath == "" {
+				parentPath = "/"
+			} else {
+				parentPath = resolvedParentPath
+			}
+		}
+
+		targets[parentPath] = append(targets[parentPath], name)
+	}
+	return targets
+}
+
+func deleteEntries(p *pikpak.PikPak, parentPath string, names []string) error {
+	parentID, err := p.GetPathFolderId(parentPath)
+	if err != nil {
+		return fmt.Errorf("get path folder id for %s failed: %w", parentPath, err)
+	}
+
+	files, err := p.GetFolderFileStatList(parentID)
+	if err != nil {
+		return fmt.Errorf("get file list for %s failed: %w", parentPath, err)
+	}
+
+	fileIndex := make(map[string]pikpak.FileStat, len(files))
+	for _, file := range files {
+		fileIndex[file.Name] = file
+	}
+
+	for _, name := range names {
+		file, ok := fileIndex[name]
+		if !ok {
+			logrus.Errorf("Entry not found in %s: %s", parentPath, name)
+			continue
+		}
+
+		if err := p.DeleteFile(file.ID); err != nil {
+			logrus.Errorf("Delete %s from %s failed: %v", name, parentPath, err)
+			continue
+		}
+
+		logrus.Infof("Deleted %s from %s", name, parentPath)
+	}
+
+	return nil
 }

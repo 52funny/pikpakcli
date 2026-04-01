@@ -127,17 +127,17 @@
 - Delete a file by full path from the PikPak cloud.
 
   ```bash
-  pikpakcli delete Movies/Peppa_Pig.mp4
+  pikpakcli delete /Movies/Peppa_Pig.mp4
   ```
 
-- Delete a file from a specific directory using the `-p` flag.
+- Delete entries from a specific directory using the `-p` flag.
 
   ```bash
-  pikpakcli delete -p Movies Peppa_Pig.mp4
+  pikpakcli delete -p /Movies Peppa_Pig.mp4
   ```
 
-- Delete multiple files under the same path.
+- Delete multiple entries under the same path.
 
   ```bash
-  pikpakcli delete -p Movies File1.mp4 File2.mp4
+  pikpakcli delete -p /Movies File1.mp4 File2.mp4
   ```

@@ -123,20 +123,20 @@
 
 ## 删除
 
-- 删除指定文件
+- 按完整路径删除文件
 
   ```bash
-  pikpakcli delete Movies/Peppa_Pig.mp4
+  pikpakcli delete /Movies/Peppa_Pig.mp4
   ```
 
-- 删除指定目录中的文件
+- 使用 `-p` 指定父目录后删除其中的文件或文件夹
 
   ```bash
-  pikpakcli delete -p 文件夹路径 文件名
+  pikpakcli delete -p /Movies Peppa_Pig.mp4
   ```
 
-- 同时删除多个文件
+- 在同一路径下同时删除多个文件或文件夹
 
   ```bash
-  pikpakcli delete -p 文件夹路径 文件1 文件2
+  pikpakcli delete -p /Movies File1.mp4 File2.mp4
   ```
