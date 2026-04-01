@@ -3,14 +3,15 @@ package cmd
 import (
 	"os"
 
+	del "github.com/52funny/pikpakcli/cmd/del"
 	"github.com/52funny/pikpakcli/cmd/download"
 	"github.com/52funny/pikpakcli/cmd/embed"
 	"github.com/52funny/pikpakcli/cmd/list"
 	"github.com/52funny/pikpakcli/cmd/new"
 	"github.com/52funny/pikpakcli/cmd/quota"
+	"github.com/52funny/pikpakcli/cmd/rename"
 	"github.com/52funny/pikpakcli/cmd/share"
 	"github.com/52funny/pikpakcli/cmd/upload"
-	del "github.com/52funny/pikpakcli/cmd/del"
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -54,6 +55,7 @@ func init() {
 	rootCmd.AddCommand(quota.QuotaCmd)
 	rootCmd.AddCommand(list.ListCmd)
 	rootCmd.AddCommand(del.DeleteCmd)
+	rootCmd.AddCommand(rename.RenameCmd)
 }
 
 // Execute the command line interface

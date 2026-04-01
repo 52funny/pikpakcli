@@ -1,6 +1,7 @@
 package pikpak
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/tidwall/gjson"
 )
 
@@ -142,6 +144,24 @@ func (p *PikPak) GetFileStat(parentId string, name string) (FileStat, error) {
 	return FileStat{}, errors.New("file not found")
 }
 
+func (p *PikPak) GetFileByPath(path string) (FileStat, error) {
+	parentPath, name := utils.SplitRemotePath(path)
+	if name == "" {
+		return FileStat{}, errors.New("cannot get info of root directory")
+	}
+
+	parentID := ""
+	var err error
+	if parentPath != "" {
+		parentID, err = p.GetPathFolderId(parentPath)
+		if err != nil {
+			return FileStat{}, err
+		}
+	}
+
+	return p.GetFileStat(parentID, name)
+}
+
 func (p *PikPak) GetFile(fileId string) (File, error) {
 	var fileInfo File
 	query := url.Values{}
@@ -198,5 +218,46 @@ START:
 		}
 		return fmt.Errorf("%s: %s", gjson.GetBytes(bs, "error").String(), fileId)
 	}
+	return nil
+}
+
+func (p *PikPak) Rename(fileId string, newName string) error {
+	if newName == "" {
+		return errors.New("new name cannot be empty")
+	}
+
+	apiURL := "https://api-drive.mypikpak.com/drive/v1/files/" + fileId
+	body := map[string]string{"name": newName}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+START:
+	req, err := http.NewRequest("PATCH", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Captcha-Token", p.CaptchaToken)
+	req.Header.Set("X-Device-Id", p.DeviceId)
+	bs, err := p.sendRequest(req)
+	if err != nil {
+		return err
+	}
+
+	errorCode := gjson.GetBytes(bs, "error_code").Int()
+	if errorCode != 0 {
+		if errorCode == 9 {
+			err = p.AuthCaptchaToken("PATCH:/drive/v1/files")
+			if err != nil {
+				return err
+			}
+			goto START
+		}
+		return fmt.Errorf("%s: %s", gjson.GetBytes(bs, "error").String(), fileId)
+	}
+
 	return nil
 }
