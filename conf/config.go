@@ -117,20 +117,7 @@ func readFromBinary() error {
 
 // Read configuration file from the given path
 func readFromPath(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	bs, err := io.ReadAll(f)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(bs, &Config)
-	if err != nil {
-		return err
-	}
-	return nil
+	return readConfig(path)
 }
 
 // Read configuration file from config path
@@ -139,7 +126,10 @@ func readFromConfigDir() error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(configDir, "pikpakcli", "config.yml")
+	return readConfig(filepath.Join(configDir, "pikpakcli", "config.yml"))
+}
+
+func readConfig(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err

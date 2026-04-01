@@ -2,10 +2,10 @@ package list
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -52,23 +52,18 @@ func handle(p *pikpak.PikPak, args []string) {
 	}
 	for _, file := range files {
 		if long {
-			if human {
-				display(3, &file)
-			} else {
-				display(2, &file)
-			}
+			display(2, &file)
 		} else {
 			display(0, &file)
 		}
 	}
 }
 
-// lH
 // mode 0: normal print
 // mode 2: long format
-// mode 3: long format and human readable
-
 func display(mode int, file *pikpak.FileStat) {
+	size := utils.FormatStorage(file.Size, human)
+
 	switch mode {
 	case 0:
 		if file.Kind == "drive#folder" {
@@ -78,43 +73,9 @@ func display(mode int, file *pikpak.FileStat) {
 		}
 	case 2:
 		if file.Kind == "drive#folder" {
-			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, file.Size, file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
+			fmt.Printf("%-26s %-8s %-19s %s\n", file.ID, size, file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
 		} else {
-			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, file.Size, file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
-		}
-	case 3:
-		if file.Kind == "drive#folder" {
-			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, displayStorage(file.Size), file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
-		} else {
-			fmt.Printf("%-26s %-6s %-14s %s\n", file.ID, displayStorage(file.Size), file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
+			fmt.Printf("%-26s %-8s %-19s %s\n", file.ID, size, file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)
 		}
 	}
-}
-
-func displayStorage(s string) string {
-	size, _ := strconv.ParseUint(s, 10, 64)
-	cnt := 0
-	for size > 1024 {
-		cnt += 1
-		if cnt > 5 {
-			break
-		}
-		size /= 1024
-	}
-	res := strconv.Itoa(int(size))
-	switch cnt {
-	case 0:
-		res += "B"
-	case 1:
-		res += "KB"
-	case 2:
-		res += "MB"
-	case 3:
-		res += "GB"
-	case 4:
-		res += "TB"
-	case 5:
-		res += "PB"
-	}
-	return res
 }

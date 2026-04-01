@@ -187,19 +187,10 @@ func downloadFile(p *pikpak.PikPak, args []string) {
 	if progress {
 		pb := mpb.New(mpb.WithAutoRefresh())
 		for i := 0; i < count; i++ {
-			// if progress is true then show progress bar
 			go download(sendCh, receiveCh, pb)
 		}
 	} else {
-		go download(sendCh, receiveCh, nil)
-	}
-
-	for i := 0; i < count; i++ {
-		// if progress is true then show progress bar
-		switch progress {
-		case true:
-			go download(sendCh, receiveCh, mpb.New(mpb.WithAutoRefresh()))
-		case false:
+		for i := 0; i < count; i++ {
 			go download(sendCh, receiveCh, nil)
 		}
 	}

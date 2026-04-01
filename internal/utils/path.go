@@ -5,13 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 )
-
-func Contains(alreadySyncFiles []string, f string) bool {
-	return slices.Contains(alreadySyncFiles, f)
-}
 
 func SplitSeparator(path string) []string {
 	if path == "" {

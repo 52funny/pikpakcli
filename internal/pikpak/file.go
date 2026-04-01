@@ -147,13 +147,13 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 	query.Add("thumbnail_size", "SIZE_MEDIUM")
 	req, err := http.NewRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId+"?"+query.Encode(), nil)
 	if err != nil {
-		return fileInfo, nil
+		return fileInfo, err
 	}
 	req.Header.Set("X-Captcha-Token", p.CaptchaToken)
 	req.Header.Set("X-Device-Id", p.DeviceId)
 	bs, err := p.sendRequest(req)
 	if err != nil {
-		return fileInfo, nil
+		return fileInfo, err
 	}
 
 	error_code := gjson.Get(*(*string)(unsafe.Pointer(&bs)), "error_code").Int()
