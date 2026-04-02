@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/52funny/pikpakcli/internal/utils"
@@ -50,7 +49,7 @@ func (p *PikPak) GetFolderId(parentId string, dir string) (string, error) {
 	value.Add("thumbnail_size", "SIZE_LARGE")
 	value.Add("limit", "500")
 	for {
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://api-drive.mypikpak.com/drive/v1/files?"+value.Encode()), nil)
+		req, err := p.newRequest("GET", fmt.Sprintf("https://api-drive.mypikpak.com/drive/v1/files?"+value.Encode()), nil)
 		if err != nil {
 			return "", err
 		}
@@ -126,7 +125,7 @@ func (p *PikPak) CreateFolder(parentId, dir string) (string, error) {
 		return "", err
 	}
 START:
-	req, err := http.NewRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
 	if err != nil {
 		return "", err
 	}

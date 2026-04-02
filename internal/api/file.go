@@ -2,10 +2,10 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"time"
 	"unsafe"
@@ -81,6 +81,7 @@ type File struct {
 	Writable          bool          `json:"writable"`
 	FolderType        string        `json:"folder_type"`
 	Collection        interface{}   `json:"collection"`
+	ctx               context.Context
 }
 
 type fileListResult struct {
@@ -99,7 +100,7 @@ func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 	fileList := make([]FileStat, 0)
 
 	for {
-		req, err := http.NewRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files?"+query.Encode(), nil)
+		req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files?"+query.Encode(), nil)
 		if err != nil {
 			return fileList, err
 		}
@@ -166,7 +167,7 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 	var fileInfo File
 	query := url.Values{}
 	query.Add("thumbnail_size", "SIZE_MEDIUM")
-	req, err := http.NewRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId+"?"+query.Encode(), nil)
+	req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId+"?"+query.Encode(), nil)
 	if err != nil {
 		return fileInfo, err
 	}
@@ -192,12 +193,13 @@ func (p *PikPak) GetFile(fileId string) (File, error) {
 	if err != nil {
 		return fileInfo, err
 	}
+	fileInfo.ctx = p.requestContext()
 	return fileInfo, err
 }
 
 func (p *PikPak) DeleteFile(fileId string) error {
 START:
-	req, err := http.NewRequest("DELETE", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId, nil)
+	req, err := p.newRequest("DELETE", "https://api-drive.mypikpak.com/drive/v1/files/"+fileId, nil)
 	if err != nil {
 		return err
 	}
@@ -234,7 +236,7 @@ func (p *PikPak) Rename(fileId string, newName string) error {
 	}
 
 START:
-	req, err := http.NewRequest("PATCH", apiURL, bytes.NewBuffer(jsonBody))
+	req, err := p.newRequest("PATCH", apiURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return err
 	}

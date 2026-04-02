@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -28,9 +29,17 @@ type PikPak struct {
 	DeviceId      string `json:"deviceId"`
 	RefreshSecond int64  `json:"refreshSecond"`
 	client        *http.Client
+	ctx           context.Context
 }
 
 func NewPikPak(account, password string) PikPak {
+	return NewPikPakWithContext(context.Background(), account, password)
+}
+
+func NewPikPakWithContext(ctx context.Context, account, password string) PikPak {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
@@ -55,7 +64,19 @@ func NewPikPak(account, password string) PikPak {
 		Password: password,
 		DeviceId: hex.EncodeToString(n[:]),
 		client:   client,
+		ctx:      ctx,
 	}
+}
+
+func (p *PikPak) requestContext() context.Context {
+	if p != nil && p.ctx != nil {
+		return p.ctx
+	}
+	return context.Background()
+}
+
+func (p *PikPak) newRequest(method, url string, body io.Reader) (*http.Request, error) {
+	return http.NewRequestWithContext(p.requestContext(), method, url, body)
 }
 
 // login performs the full credential-based login flow.
@@ -76,7 +97,7 @@ func (p *PikPak) login() error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/auth/signin", bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", "https://user.mypikpak.com/v1/auth/signin", bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}
@@ -111,7 +132,7 @@ func (p *PikPak) getCaptchaToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/shield/captcha/init", bytes.NewBuffer(body))
+	req, err := p.newRequest("POST", "https://user.mypikpak.com/v1/shield/captcha/init", bytes.NewBuffer(body))
 	if err != nil {
 		return "", err
 	}

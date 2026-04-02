@@ -18,7 +18,7 @@ var DeleteCmd = &cobra.Command{
 	Short:   "Delete files or folders on the PikPak server",
 	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
 			logrus.Errorf("Login failed: %v", err)
 			return

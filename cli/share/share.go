@@ -16,7 +16,7 @@ var ShareCommand = &cobra.Command{
 	Aliases: []string{"d"},
 	Short:   `Share file links on the pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)

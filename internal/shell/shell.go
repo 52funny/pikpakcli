@@ -1,8 +1,11 @@
 package shell
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
+	"os/signal"
 	"path"
 	"slices"
 	"strings"
@@ -30,7 +33,7 @@ type shellAutoCompleter struct {
 // Start starts the interactive shell
 func Start(rootCmd *cobra.Command) {
 	fmt.Println("PikPak CLI Interactive Shell")
-	fmt.Println("Type 'help' for available commands, 'exit' to quit")
+	fmt.Println("Type 'help' for available commands, 'exit' or Ctrl-D to quit")
 	fmt.Println()
 
 	currentPath := "/"
@@ -59,6 +62,12 @@ func Start(rootCmd *cobra.Command) {
 
 	for {
 		input, err := l.Readline()
+
+		if isReadlineInterrupt(err) {
+			fmt.Println()
+			l.SetPrompt(promptForPath(currentPath))
+			continue
+		}
 
 		if shouldExitOnReadlineError(err) {
 			fmt.Println("\nBye~!")
@@ -104,17 +113,35 @@ func Start(rootCmd *cobra.Command) {
 			args = append(args, "-p", currentPath)
 		}
 
+		cmdCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		setCommandContextTree(rootCmd, cmdCtx)
 		rootCmd.SetArgs(args)
-		if err := rootCmd.Execute(); err != nil {
+		if err := rootCmd.Execute(); err != nil && cmdCtx.Err() == nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
+		stop()
+		setCommandContextTree(rootCmd, context.Background())
 		rootCmd.SetArgs([]string{})
 		resetFlags(rootCmd)
+		if cmdCtx.Err() != nil {
+			fmt.Println()
+		}
 	}
 }
 
 func shouldExitOnReadlineError(err error) bool {
+	return err == io.EOF
+}
+
+func isReadlineInterrupt(err error) bool {
 	return err == readline.ErrInterrupt
+}
+
+func setCommandContextTree(cmd *cobra.Command, ctx context.Context) {
+	cmd.SetContext(ctx)
+	for _, child := range cmd.Commands() {
+		setCommandContextTree(child, ctx)
+	}
 }
 
 func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {

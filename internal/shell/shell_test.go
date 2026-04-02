@@ -1,7 +1,9 @@
 package shell
 
 import (
+	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/52funny/pikpakcli/internal/api"
@@ -132,9 +134,35 @@ func TestSplitCompletionLine(t *testing.T) {
 }
 
 func TestShouldExitOnReadlineError(t *testing.T) {
-	require.True(t, shouldExitOnReadlineError(readline.ErrInterrupt))
+	require.True(t, shouldExitOnReadlineError(io.EOF))
 	require.False(t, shouldExitOnReadlineError(nil))
+	require.False(t, shouldExitOnReadlineError(readline.ErrInterrupt))
 	require.False(t, shouldExitOnReadlineError(errors.New("other error")))
+}
+
+func TestIsReadlineInterrupt(t *testing.T) {
+	require.True(t, isReadlineInterrupt(readline.ErrInterrupt))
+	require.False(t, isReadlineInterrupt(nil))
+	require.False(t, isReadlineInterrupt(io.EOF))
+}
+
+func TestSetCommandContextTree(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "root"}
+	childCmd := &cobra.Command{Use: "child"}
+	rootCmd.AddCommand(childCmd)
+
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	setCommandContextTree(rootCmd, ctx1)
+	cancel1()
+
+	require.ErrorIs(t, rootCmd.Context().Err(), context.Canceled)
+	require.ErrorIs(t, childCmd.Context().Err(), context.Canceled)
+
+	ctx2 := context.Background()
+	setCommandContextTree(rootCmd, ctx2)
+
+	require.NoError(t, rootCmd.Context().Err())
+	require.NoError(t, childCmd.Context().Err())
 }
 
 func TestCompleterCommandsAndFlags(t *testing.T) {

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"net/http"
 	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
@@ -41,7 +40,7 @@ type Quotas struct {
 
 // GetQuota get cloud quota
 func (p *PikPak) GetQuota() (QuotaMessage, error) {
-	req, err := http.NewRequest("GET", "https://api-drive.mypikpak.com/drive/v1/about", nil)
+	req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/drive/v1/about", nil)
 	if err != nil {
 		return QuotaMessage{}, err
 	}

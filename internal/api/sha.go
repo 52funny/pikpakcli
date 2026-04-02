@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -32,7 +31,7 @@ func (p *PikPak) CreateShaFile(parentId, fileName, size, sha string) error {
 		return err
 	}
 START:
-	req, err := http.NewRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}

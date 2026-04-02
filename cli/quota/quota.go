@@ -16,7 +16,7 @@ var QuotaCmd = &cobra.Command{
 	Use:   "quota",
 	Short: `Get the quota for the pikpak cloud`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)

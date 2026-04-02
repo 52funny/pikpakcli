@@ -20,7 +20,7 @@ var UploadCmd = &cobra.Command{
 	Short:   `Upload file to pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
 		api.Concurrent = uploadConcurrency
-		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Error(err)

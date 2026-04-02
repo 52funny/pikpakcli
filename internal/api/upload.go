@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
@@ -75,7 +76,7 @@ func (p *PikPak) UploadFile(parentId, path string) error {
 		return err
 	}
 START:
-	req, err := http.NewRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", "https://api-drive.mypikpak.com/drive/v1/files", bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}
@@ -151,7 +152,7 @@ START:
 
 	for i := int64(0); i < Concurrent; i++ {
 		wait.Add(1)
-		go uploadChunk(wait, ch, f, chunkSize, fileSize, i, ossArgs, uploadId)
+		go uploadChunk(p.requestContext(), wait, ch, f, chunkSize, fileSize, i, ossArgs, uploadId)
 	}
 	donePartSlice := make([]Part, 0)
 	in_wait.Add(1)
@@ -179,7 +180,7 @@ START:
 	return nil
 }
 
-func uploadChunk(wait *sync.WaitGroup, ch chan Part, f *os.File, ChunkSize, fileSize int64, part int64, ossArgs OssArgs, uploadId string) {
+func uploadChunk(ctx context.Context, wait *sync.WaitGroup, ch chan Part, f *os.File, ChunkSize, fileSize int64, part int64, ossArgs OssArgs, uploadId string) {
 	defer wait.Done()
 	if part*ChunkSize >= fileSize {
 		return
@@ -195,7 +196,7 @@ func uploadChunk(wait *sync.WaitGroup, ch chan Part, f *os.File, ChunkSize, file
 			value := url.Values{}
 			value.Add("uploadId", uploadId)
 			value.Add("partNumber", fmt.Sprintf("%d", part+1))
-			req, err := http.NewRequest("PUT", fmt.Sprintf("https://%s/%s?%s",
+			req, err := http.NewRequestWithContext(ctx, "PUT", fmt.Sprintf("https://%s/%s?%s",
 				ossArgs.EndPoint,
 				ossArgs.Key,
 				value.Encode()), bytes.NewBuffer(buf[:n]))
@@ -279,7 +280,7 @@ func hmacAuthorization(req *http.Request, body []byte, time time.Time, ossArgs O
 }
 
 func (p *PikPak) beforeUpload(ossArgs OssArgs) string {
-	req, err := http.NewRequest("POST", "https://"+ossArgs.EndPoint+"/"+ossArgs.Key+"?uploads", nil)
+	req, err := p.newRequest("POST", "https://"+ossArgs.EndPoint+"/"+ossArgs.Key+"?uploads", nil)
 	if err != nil {
 		return ""
 	}
@@ -323,7 +324,7 @@ func (p *PikPak) afterUpload(args *CompleteMultipartUpload, ossArgs OssArgs, upl
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", "https://"+ossArgs.EndPoint+"/"+ossArgs.Key+"?uploadId="+uploadId, bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", "https://"+ossArgs.EndPoint+"/"+ossArgs.Key+"?uploadId="+uploadId, bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}

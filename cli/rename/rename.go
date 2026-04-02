@@ -18,7 +18,7 @@ var RenameCmd = &cobra.Command{
 Example: pikpakcli rename /my-folder/old-name.txt new-name.txt`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
 			logrus.Errorln("Login failed:", err)
 			return err

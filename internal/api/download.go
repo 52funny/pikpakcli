@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,13 @@ var errRestartDownload = errors.New("restart download from beginning")
 
 type retryableDownloadError struct {
 	err error
+}
+
+func (f *File) requestContext() context.Context {
+	if f != nil && f.ctx != nil {
+		return f.ctx
+	}
+	return context.Background()
 }
 
 func (e *retryableDownloadError) Error() string {
@@ -90,7 +98,7 @@ func (f *File) download(path string, bar *mpb.Bar, expectedSize int64) error {
 		return err
 	}
 
-	req, err := http.NewRequest("GET", f.Links.ApplicationOctetStream.URL, nil)
+	req, err := http.NewRequestWithContext(f.requestContext(), "GET", f.Links.ApplicationOctetStream.URL, nil)
 	if err != nil {
 		return err
 	}

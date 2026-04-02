@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
@@ -22,7 +21,7 @@ func (p *PikPak) RefreshToken() error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", url, bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}

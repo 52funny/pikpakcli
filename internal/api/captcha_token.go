@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -58,7 +57,7 @@ func (p *PikPak) AuthCaptchaToken(action string) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", "https://user.mypikpak.com/v1/shield/captcha/init?client_id="+clientID, bytes.NewBuffer(bs))
+	req, err := p.newRequest("POST", "https://user.mypikpak.com/v1/shield/captcha/init?client_id="+clientID, bytes.NewBuffer(bs))
 	if err != nil {
 		return err
 	}
