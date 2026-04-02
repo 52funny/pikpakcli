@@ -167,11 +167,11 @@ func TestCompleterCDPath(t *testing.T) {
 		fileStatSource: fakeFileStatProvider{
 			folders: map[string][]api.FileStat{
 				"": {
-					{Name: "Movies", Kind: "drive#folder"},
-					{Name: "Music", Kind: "drive#folder"},
+					{Name: "Movies", Kind: api.FileKindFolder},
+					{Name: "Music", Kind: api.FileKindFolder},
 				},
 				"movies-id": {
-					{Name: "Kids Cartoons", Kind: "drive#folder"},
+					{Name: "Kids Cartoons", Kind: api.FileKindFolder},
 				},
 			},
 			ids: map[string]string{
@@ -194,8 +194,8 @@ func TestCompleterCDPathFromCurrentDirectory(t *testing.T) {
 		fileStatSource: fakeFileStatProvider{
 			folders: map[string][]api.FileStat{
 				"movies-id": {
-					{Name: "Kids Cartoons", Kind: "drive#folder"},
-					{Name: "Drama", Kind: "drive#folder"},
+					{Name: "Kids Cartoons", Kind: api.FileKindFolder},
+					{Name: "Drama", Kind: api.FileKindFolder},
 				},
 			},
 			ids: map[string]string{

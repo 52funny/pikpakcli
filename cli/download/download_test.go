@@ -111,7 +111,7 @@ func TestResolveDownloadTargetWithoutArgsUsesBaseFolder(t *testing.T) {
 	resolver := fakeTargetResolver{
 		getFileByPath: func(path string) (api.FileStat, error) {
 			require.Equal(t, filepath.Clean("/Movies"), path)
-			return api.FileStat{Kind: "drive#folder", ID: "folder-1", Name: "Movies"}, nil
+			return api.FileStat{Kind: api.FileKindFolder, ID: "folder-1", Name: "Movies"}, nil
 		},
 		getFileStat: func(parentId string, name string) (api.FileStat, error) {
 			return api.FileStat{}, errors.New("should not resolve by parent id")
@@ -124,5 +124,5 @@ func TestResolveDownloadTargetWithoutArgsUsesBaseFolder(t *testing.T) {
 	stat, err := resolveDownloadTarget(resolver, "")
 	require.NoError(t, err)
 	require.Equal(t, "folder-1", stat.ID)
-	require.Equal(t, "drive#folder", stat.Kind)
+	require.Equal(t, api.FileKindFolder, stat.Kind)
 }

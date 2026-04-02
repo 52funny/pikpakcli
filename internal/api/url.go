@@ -11,7 +11,7 @@ import (
 
 func (p *PikPak) CreateUrlFile(parentId, url string) error {
 	m := map[string]interface{}{
-		"kind":        "drive#file",
+		"kind":        FileKindFile,
 		"upload_type": "UPLOAD_TYPE_URL",
 		"url": map[string]string{
 			"url": url,

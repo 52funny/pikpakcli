@@ -74,7 +74,7 @@ func shareFolder(p *api.PikPak, f *os.File) {
 	}
 	for _, stat := range fileStat {
 		// logrus.Debug(stat)
-		if stat.Kind == "drive#file" {
+		if stat.Kind == api.FileKindFile {
 			fmt.Fprintf(f, "PikPak://%s|%s|%s\n", stat.Name, stat.Size, stat.Hash)
 		}
 	}

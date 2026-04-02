@@ -73,13 +73,13 @@ func display(mode int, file *api.FileStat) {
 
 	switch mode {
 	case 0:
-		if file.Kind == "drive#folder" {
+		if file.Kind == api.FileKindFolder {
 			fmt.Printf("%-20s\n", color.GreenString(file.Name))
 		} else {
 			fmt.Printf("%-20s\n", file.Name)
 		}
 	case 2:
-		if file.Kind == "drive#folder" {
+		if file.Kind == api.FileKindFolder {
 			fmt.Printf("%-26s %-8s %-19s %s\n", file.ID, size, file.CreatedTime.Format("2006-01-02 15:04:05"), color.GreenString(file.Name))
 		} else {
 			fmt.Printf("%-26s %-8s %-19s %s\n", file.ID, size, file.CreatedTime.Format("2006-01-02 15:04:05"), file.Name)

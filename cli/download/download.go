@@ -102,7 +102,7 @@ func downloadTarget(p *api.PikPak, arg string) {
 		return
 	}
 
-	if stat.Kind == "drive#folder" {
+	if stat.Kind == api.FileKindFolder {
 		downloadFolder(p, stat.ID, localOutputRoot(stat.Name))
 		return
 	}
@@ -184,7 +184,7 @@ func recursive(p *api.PikPak, collectWarpFile *[]warpStat, parentId string, pare
 		return
 	}
 	for _, r := range statList {
-		if r.Kind == "drive#folder" {
+		if r.Kind == api.FileKindFolder {
 			recursive(p, collectWarpFile, r.ID, filepath.Join(parentPath, r.Name))
 		} else {
 			// file, _ := p.GetFile(r.ID)
@@ -234,7 +234,7 @@ func resolveDownloadTarget(p downloadTargetResolver, arg string) (api.FileStat, 
 	if target := strings.TrimSpace(arg); target == "" {
 		if parentId != "" {
 			return api.FileStat{
-				Kind: "drive#folder",
+				Kind: api.FileKindFolder,
 				ID:   parentId,
 				Name: filepath.Base(filepath.Clean(folder)),
 			}, nil
@@ -246,7 +246,7 @@ func resolveDownloadTarget(p downloadTargetResolver, arg string) (api.FileStat, 
 				return api.FileStat{}, err
 			}
 			return api.FileStat{
-				Kind: "drive#folder",
+				Kind: api.FileKindFolder,
 				ID:   id,
 				Name: "",
 			}, nil

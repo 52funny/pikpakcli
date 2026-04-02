@@ -185,7 +185,7 @@ func (c *shellAutoCompleter) completeRemotePath(prefix string, onlyDirs bool) ([
 
 	candidates := make([]string, 0)
 	for _, file := range files {
-		if onlyDirs && file.Kind != "drive#folder" {
+		if onlyDirs && file.Kind != api.FileKindFolder {
 			continue
 		}
 		if !strings.HasPrefix(file.Name, namePrefix) {
@@ -193,7 +193,7 @@ func (c *shellAutoCompleter) completeRemotePath(prefix string, onlyDirs bool) ([
 		}
 
 		remaining := file.Name[len(namePrefix):]
-		if file.Kind == "drive#folder" {
+		if file.Kind == api.FileKindFolder {
 			remaining += "/"
 		}
 		candidates = append(candidates, remaining)

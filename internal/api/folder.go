@@ -70,7 +70,7 @@ func (p *PikPak) GetFolderId(parentId string, dir string) (string, error) {
 			kind := file.Get("kind").String()
 			name := file.Get("name").String()
 			trashed := file.Get("trashed").Bool()
-			if kind == "drive#folder" && name == dir && !trashed {
+			if kind == FileKindFolder && name == dir && !trashed {
 				return file.Get("id").String(), nil
 			}
 		}
@@ -117,7 +117,7 @@ func (p *PikPak) GetDeepFolderOrCreateId(parentId string, dirPath string) (strin
 // parentId is parent folder id
 func (p *PikPak) CreateFolder(parentId, dir string) (string, error) {
 	m := map[string]interface{}{
-		"kind":      "drive#folder",
+		"kind":      FileKindFolder,
 		"parent_id": parentId,
 		"name":      dir,
 	}
