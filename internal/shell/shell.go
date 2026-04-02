@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
@@ -12,6 +13,19 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
+
+var builtInCommands = []string{"cd", "exit", "help", "quit"}
+
+type fileStatProvider interface {
+	GetPathFolderId(dirPath string) (string, error)
+	GetFolderFileStatList(parentId string) ([]pikpak.FileStat, error)
+}
+
+type shellAutoCompleter struct {
+	rootCmd        *cobra.Command
+	fileStatSource fileStatProvider
+	currentPath    func() string
+}
 
 // Start starts the interactive shell
 func Start(rootCmd *cobra.Command) {
@@ -27,7 +41,16 @@ func Start(rootCmd *cobra.Command) {
 		return
 	}
 
-	l, err := readline.New(promptForPath(currentPath))
+	l, err := readline.NewEx(&readline.Config{
+		Prompt: promptForPath(currentPath),
+		AutoComplete: &shellAutoCompleter{
+			rootCmd:        rootCmd,
+			fileStatSource: &p,
+			currentPath: func() string {
+				return currentPath
+			},
+		},
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing readline: %v\n", err)
 		return
@@ -89,6 +112,91 @@ func Start(rootCmd *cobra.Command) {
 	}
 }
 
+func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {
+	input := string(line[:pos])
+	tokens, active, endedWithSpace := splitCompletionLine(input)
+
+	if len(tokens) == 0 {
+		return completeFromPrefix(active, commandCandidates(c.rootCmd), true)
+	}
+
+	if tokens[0] == "cd" {
+		return c.completeRemotePath(active, true)
+	}
+
+	cmd, consumed := resolveCommand(c.rootCmd, tokens)
+
+	if consumed == 0 && !endedWithSpace {
+		return completeFromPrefix(active, commandCandidates(c.rootCmd), true)
+	}
+
+	if cmd == nil {
+		return nil, 0
+	}
+
+	if len(cmd.Commands()) > 0 && (endedWithSpace || active != "") && len(tokens) == consumed {
+		return completeFromPrefix(active, subcommandCandidates(cmd), true)
+	}
+
+	if strings.HasPrefix(active, "-") {
+		return completeFromPrefix(active, flagCandidates(cmd), true)
+	}
+
+	return nil, 0
+}
+
+func (c *shellAutoCompleter) completeRemotePath(prefix string, onlyDirs bool) ([][]rune, int) {
+	currentPath := c.currentPath()
+	targetPath := resolveShellPath(currentPath, prefix)
+	basePrefix := prefix
+	if strings.TrimSpace(prefix) == "" {
+		targetPath = currentPath
+		basePrefix = ""
+	}
+
+	parentPath := targetPath
+	namePrefix := ""
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
+		parentPath = path.Dir(targetPath)
+		if parentPath == "." {
+			parentPath = "/"
+		}
+		namePrefix = path.Base(targetPath)
+	}
+
+	parentID := ""
+	var err error
+	if parentPath != "/" {
+		parentID, err = c.fileStatSource.GetPathFolderId(parentPath)
+		if err != nil {
+			return nil, len([]rune(basePrefix))
+		}
+	}
+
+	files, err := c.fileStatSource.GetFolderFileStatList(parentID)
+	if err != nil {
+		return nil, len([]rune(basePrefix))
+	}
+
+	candidates := make([]string, 0)
+	for _, file := range files {
+		if onlyDirs && file.Kind != "drive#folder" {
+			continue
+		}
+		if !strings.HasPrefix(file.Name, namePrefix) {
+			continue
+		}
+
+		remaining := file.Name[len(namePrefix):]
+		if file.Kind == "drive#folder" {
+			remaining += "/"
+		}
+		candidates = append(candidates, remaining)
+	}
+
+	return toRuneCandidates(candidates), len([]rune(basePrefix))
+}
+
 func promptForPath(currentPath string) string {
 	if currentPath == "/" {
 		return "pikpak / > "
@@ -125,6 +233,141 @@ func resolveShellPath(currentPath string, target string) string {
 	}
 
 	return path.Clean(path.Join(currentPath, target))
+}
+
+func splitCompletionLine(input string) ([]string, string, bool) {
+	args := make([]string, 0)
+	var current strings.Builder
+	inDoubleQuote := false
+	inSingleQuote := false
+	endedWithSpace := false
+
+	for i := 0; i < len(input); i++ {
+		ch := input[i]
+
+		switch ch {
+		case '"':
+			endedWithSpace = false
+			if inSingleQuote {
+				current.WriteByte(ch)
+			} else {
+				inDoubleQuote = !inDoubleQuote
+			}
+		case '\'':
+			endedWithSpace = false
+			if inDoubleQuote {
+				current.WriteByte(ch)
+			} else {
+				inSingleQuote = !inSingleQuote
+			}
+		case ' ', '\t':
+			if inDoubleQuote || inSingleQuote {
+				current.WriteByte(ch)
+				endedWithSpace = false
+			} else {
+				if current.Len() > 0 {
+					args = append(args, current.String())
+					current.Reset()
+				}
+				endedWithSpace = true
+			}
+		default:
+			current.WriteByte(ch)
+			endedWithSpace = false
+		}
+	}
+
+	if current.Len() > 0 {
+		return args, current.String(), false
+	}
+
+	return args, "", endedWithSpace
+}
+
+func commandCandidates(rootCmd *cobra.Command) []string {
+	candidates := append([]string{}, builtInCommands...)
+	candidates = append(candidates, subcommandCandidates(rootCmd)...)
+	slices.Sort(candidates)
+	return slices.Compact(candidates)
+}
+
+func subcommandCandidates(cmd *cobra.Command) []string {
+	candidates := make([]string, 0)
+	for _, sub := range cmd.Commands() {
+		if sub.Hidden {
+			continue
+		}
+		candidates = append(candidates, sub.Name())
+		candidates = append(candidates, sub.Aliases...)
+	}
+	slices.Sort(candidates)
+	return slices.Compact(candidates)
+}
+
+func flagCandidates(cmd *cobra.Command) []string {
+	candidates := make([]string, 0)
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		candidates = append(candidates, "--"+f.Name)
+		if f.Shorthand != "" {
+			candidates = append(candidates, "-"+f.Shorthand)
+		}
+	})
+	cmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+		candidates = append(candidates, "--"+f.Name)
+		if f.Shorthand != "" {
+			candidates = append(candidates, "-"+f.Shorthand)
+		}
+	})
+	slices.Sort(candidates)
+	return slices.Compact(candidates)
+}
+
+func resolveCommand(rootCmd *cobra.Command, tokens []string) (*cobra.Command, int) {
+	current := rootCmd
+	consumed := 0
+
+	for _, token := range tokens {
+		matched := false
+		for _, sub := range current.Commands() {
+			if sub.Hidden {
+				continue
+			}
+			if token == sub.Name() || slices.Contains(sub.Aliases, token) {
+				current = sub
+				consumed++
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			break
+		}
+	}
+
+	return current, consumed
+}
+
+func completeFromPrefix(prefix string, candidates []string, appendSpace bool) ([][]rune, int) {
+	matches := make([]string, 0)
+	for _, candidate := range candidates {
+		if !strings.HasPrefix(candidate, prefix) {
+			continue
+		}
+		suffix := candidate[len(prefix):]
+		if appendSpace {
+			suffix += " "
+		}
+		matches = append(matches, suffix)
+	}
+	return toRuneCandidates(matches), len([]rune(prefix))
+}
+
+func toRuneCandidates(candidates []string) [][]rune {
+	out := make([][]rune, 0, len(candidates))
+	for _, candidate := range candidates {
+		out = append(out, []rune(candidate))
+	}
+	return out
 }
 
 // parseShellArgs parses shell-like arguments
