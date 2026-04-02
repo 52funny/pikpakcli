@@ -157,3 +157,19 @@
   ```bash
   pikpakcli rename /Movies/Cartoons Kids
   ```
+
+## Shell
+
+- Start the interactive shell.
+
+  ```bash
+  pikpakcli shell
+  ```
+
+- Change directory and list files in the current path.
+
+  ```bash
+  pikpakcli shell
+  cd "/Movies/Kids Cartoons"
+  ls
+  ```

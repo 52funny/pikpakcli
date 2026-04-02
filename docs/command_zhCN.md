@@ -154,3 +154,19 @@
   ```bash
   pikpakcli rename /Movies/Cartoons Kids
   ```
+
+## 交互 Shell
+
+- 启动交互式 shell
+
+  ```bash
+  pikpakcli shell
+  ```
+
+- 在 shell 中切换目录并查看当前目录文件
+
+  ```bash
+  pikpakcli shell
+  cd "/Movies/Kids Cartoons"
+  ls
+  ```

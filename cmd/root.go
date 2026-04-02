@@ -43,9 +43,7 @@ var debug bool
 
 // Initialize the command line interface
 func init() {
-	// debug
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "debug mode")
-	// config
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", "config.yml", "config file path")
 	rootCmd.AddCommand(upload.UploadCmd)
 	rootCmd.AddCommand(download.DownloadCmd)
@@ -56,6 +54,7 @@ func init() {
 	rootCmd.AddCommand(list.ListCmd)
 	rootCmd.AddCommand(del.DeleteCmd)
 	rootCmd.AddCommand(rename.RenameCmd)
+	rootCmd.AddCommand(shellCmd)
 }
 
 // Execute the command line interface
