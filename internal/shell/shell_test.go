@@ -1,9 +1,11 @@
 package shell
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
@@ -127,6 +129,12 @@ func TestSplitCompletionLine(t *testing.T) {
 			require.Equal(t, tt.spaced, spaced)
 		})
 	}
+}
+
+func TestShouldExitOnReadlineError(t *testing.T) {
+	require.True(t, shouldExitOnReadlineError(readline.ErrInterrupt))
+	require.False(t, shouldExitOnReadlineError(nil))
+	require.False(t, shouldExitOnReadlineError(errors.New("other error")))
 }
 
 func TestCompleterCommandsAndFlags(t *testing.T) {

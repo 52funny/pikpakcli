@@ -60,8 +60,9 @@ func Start(rootCmd *cobra.Command) {
 	for {
 		input, err := l.Readline()
 
-		if err == readline.ErrInterrupt {
-			continue
+		if shouldExitOnReadlineError(err) {
+			fmt.Println("\nBye~!")
+			return
 		}
 
 		if err != nil {
@@ -110,6 +111,10 @@ func Start(rootCmd *cobra.Command) {
 		rootCmd.SetArgs([]string{})
 		resetFlags(rootCmd)
 	}
+}
+
+func shouldExitOnReadlineError(err error) bool {
+	return err == readline.ErrInterrupt
 }
 
 func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {
