@@ -22,7 +22,7 @@ For docker users, the most different part is linking the configuration file (i.e
 
 ## Download
 
-- Download all files in a specific directory (e.g. `Movies`).
+- Download the target pointed to by `-p`. The target can be a folder or a file.
 
 ```bash
   # original cli: pikpakcli download -p Movies
@@ -31,12 +31,20 @@ For docker users, the most different part is linking the configuration file (i.e
   docker run --rm -v /path/to/config.yml:/root/.config/pikpakcli/config.yml -v /path/to/download/:/download pikpakcli:latest download -p Movies -o /download
   ```
 
-- Downloading a single file (e.g., `Movies/Peppa_Pig.mp4`).
+- Use `-p` as the base remote path, then append the argument to it. The CLI will decide whether it is a file or a folder.
 
 ```bash
   # original cli: pikpakcli download -p Movies Peppa_Pig.mp4
   # Docker cli
   docker run --rm -v /path/to/config.yml:/root/.config/pikpakcli/config.yml -v /path/to/download/:/download pikpakcli:latest download -p Movies Peppa_Pig.mp4 -o /download 
+  ```
+
+- Use an absolute remote path in the argument to override `-p`.
+
+```bash
+  # original cli: pikpakcli download -p Movies /TV/Peppa_Pig.mp4
+  # Docker cli
+  docker run --rm -v /path/to/config.yml:/root/.config/pikpakcli/config.yml -v /path/to/download/:/download pikpakcli:latest download -p Movies /TV/Peppa_Pig.mp4 -o /download
   ```
 
 

@@ -30,27 +30,34 @@
 
 ## Download
 
-- Download all files in a specific directory (e.g. `Movies`).
+- Download the target pointed to by `-p`. If it is a directory, download it recursively; if it is a file, download that file.
 
   ```bash
   pikpakcli download -p Movies
+  pikpakcli download -p Movies/Peppa_Pig.mp4
   ```
 
-- Downloading a single file.
+- Use `-p` as the base remote path, then append the following argument to it. The CLI will decide whether the target is a file or a directory.
 
   ```bash
   pikpakcli download -p Movies Peppa_Pig.mp4
-  # or
-  pikpakcli download Movies/Peppa_Pig.mp4
+  pikpakcli download -p Movies Cartoons
+  pikpakcli download -p Movies Kids/Peppa_Pig.mp4
   ```
 
-- Limit the number of files that can be downloaded at the same time (default: 1)
+- Use an absolute remote path in the argument to override `-p`.
+
+  ```bash
+  pikpakcli download -p Movies /TV/Peppa_Pig.mp4
+  ```
+
+- Limit the number of files that can be downloaded at the same time (default: 1).
 
   ```bash
   pikpakcli download -c 5 -p Movies
   ```
 
-- Specify the output directory of the downloaded file.
+- Specify the output directory of downloaded files.
 
   ```bash
   pikpakcli download -p Movies -o Film

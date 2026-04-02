@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"unicode/utf8"
+	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
@@ -25,11 +25,7 @@ var DownloadCmd = &cobra.Command{
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
 		}
-		if len(args) > 0 {
-			downloadFile(&p, args)
-		} else {
-			downloadFolder(&p)
-		}
+		handleDownload(&p, args)
 	},
 }
 
@@ -66,28 +62,69 @@ type warpStat struct {
 	output string
 }
 
+const progressNameMaxRunes = 36
+
 func init() {
 	DownloadCmd.Flags().IntVarP(&count, "count", "c", 1, "number of simultaneous downloads")
 	DownloadCmd.Flags().StringVarP(&output, "output", "o", ".", "output directory")
-	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "/", "specific the folder of the pikpak server\nonly support download folder")
+	DownloadCmd.Flags().StringVarP(&folder, "path", "p", "/", "specific the base path on the pikpak server")
 	DownloadCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "the parent path id")
 	DownloadCmd.Flags().BoolVarP(&progress, "progress", "g", false, "show download progress")
 }
 
-// Downloads all files in the specified directory
-func downloadFolder(p *api.PikPak) {
-	base := filepath.Base(folder)
-	var err error
-	if parentId == "" {
-		parentId, err = p.GetPathFolderId(folder)
-		if err != nil {
-			logrus.Errorln("Get Parent Folder Id Failed:", err)
-			return
-		}
+type downloadTargetResolver interface {
+	GetFileByPath(path string) (api.FileStat, error)
+	GetFileStat(parentId string, name string) (api.FileStat, error)
+	GetPathFolderId(dirPath string) (string, error)
+}
 
+func handleDownload(p *api.PikPak, args []string) {
+	if err := utils.CreateDirIfNotExist(output); err != nil {
+		logrus.Errorln("Create output directory failed:", err)
+		return
 	}
+
+	if len(args) == 0 {
+		downloadTarget(p, "")
+		return
+	}
+
+	for _, arg := range args {
+		downloadTarget(p, arg)
+	}
+}
+
+func downloadTarget(p *api.PikPak, arg string) {
+	stat, err := resolveDownloadTarget(p, arg)
+	if err != nil {
+		target := remoteTargetPath(arg)
+		logrus.Errorln("Resolve download target failed:", target, err)
+		return
+	}
+
+	if stat.Kind == "drive#folder" {
+		downloadFolder(p, stat.ID, localOutputRoot(stat.Name))
+		return
+	}
+
+	downloadFiles(p, []warpFile{
+		{
+			f:      mustGetFile(p, stat),
+			output: output,
+		},
+	})
+}
+
+func downloadFolder(p *api.PikPak, folderID string, rootOutput string) {
 	collectStat := make([]warpStat, 0)
-	recursive(p, &collectStat, parentId, filepath.Join(output, base))
+	recursive(p, &collectStat, folderID, rootOutput)
+	downloadStats(p, collectStat)
+}
+
+func downloadStats(p *api.PikPak, collectStat []warpStat) {
+	if len(collectStat) == 0 {
+		return
+	}
 
 	statCh := make(chan warpStat, len(collectStat))
 	statDone := make(chan struct{})
@@ -115,15 +152,7 @@ func downloadFolder(p *api.PikPak) {
 		}(fileCh, statCh, statDone)
 	}
 
-	if progress {
-		pb := mpb.New(mpb.WithAutoRefresh())
-		for i := 0; i < count; i++ {
-			// if progress is true then show progress bar
-			go download(fileCh, fileDone, pb)
-		}
-	} else {
-		go download(fileCh, fileDone, nil)
-	}
+	pb := startDownloadWorkers(fileCh, fileDone)
 
 	for i := 0; i < len(collectStat); i += 1 {
 		err := utils.CreateDirIfNotExist(collectStat[i].output)
@@ -142,6 +171,9 @@ func downloadFolder(p *api.PikPak) {
 
 	for i := 0; i < len(collectStat); i += 1 {
 		<-fileDone
+	}
+	if pb != nil {
+		pb.Wait()
 	}
 }
 
@@ -165,57 +197,115 @@ func recursive(p *api.PikPak, collectWarpFile *[]warpStat, parentId string, pare
 	}
 }
 
-func downloadFile(p *api.PikPak, args []string) {
-	var err error
-	if parentId == "" {
-		parentId, err = p.GetPathFolderId(folder)
-		if err != nil {
-			logrus.Errorln("get folder failed:", err)
-			return
-		}
-	}
-
-	// if output not exists then create.
-	if err := utils.CreateDirIfNotExist(output); err != nil {
-		logrus.Errorln("Create output directory failed:", err)
-		return
-	}
-
-	sendCh := make(chan warpFile, 1)
-	receiveCh := make(chan struct{}, len(args))
-
-	if progress {
-		pb := mpb.New(mpb.WithAutoRefresh())
-		for i := 0; i < count; i++ {
-			go download(sendCh, receiveCh, pb)
-		}
-	} else {
-		for i := 0; i < count; i++ {
-			go download(sendCh, receiveCh, nil)
-		}
-	}
-	for _, path := range args {
-		stat, err := p.GetFileStat(parentId, path)
-		if err != nil {
-			logrus.Errorln(path, "get parent id failed:", err)
-			continue
-		}
-
-		file, err := p.GetFile(stat.ID)
-		if err != nil {
-			logrus.Errorln(path, "get file failed", err)
-			continue
-		}
-		sendCh <- warpFile{
-			f:      &file,
-			output: output,
-		}
+func downloadFiles(p *api.PikPak, files []warpFile) {
+	sendCh := make(chan warpFile, len(files))
+	receiveCh := make(chan struct{}, len(files))
+	pb := startDownloadWorkers(sendCh, receiveCh)
+	for _, file := range files {
+		sendCh <- file
 	}
 	close(sendCh)
-	for i := 0; i < len(args); i++ {
+	for i := 0; i < len(files); i++ {
 		<-receiveCh
 	}
 	close(receiveCh)
+	if pb != nil {
+		pb.Wait()
+	}
+}
+
+func startDownloadWorkers(sendCh <-chan warpFile, receiveCh chan<- struct{}) *mpb.Progress {
+	var pb *mpb.Progress
+	if progress {
+		pb = mpb.New(
+			mpb.WithWidth(30),
+			mpb.WithAutoRefresh(),
+		)
+	}
+
+	for i := 0; i < count; i++ {
+		go download(sendCh, receiveCh, pb)
+	}
+
+	return pb
+}
+
+func resolveDownloadTarget(p downloadTargetResolver, arg string) (api.FileStat, error) {
+	if target := strings.TrimSpace(arg); target == "" {
+		if parentId != "" {
+			return api.FileStat{
+				Kind: "drive#folder",
+				ID:   parentId,
+				Name: filepath.Base(filepath.Clean(folder)),
+			}, nil
+		}
+		remotePath := remoteTargetPath("")
+		if remotePath == string(filepath.Separator) {
+			id, err := p.GetPathFolderId(folder)
+			if err != nil {
+				return api.FileStat{}, err
+			}
+			return api.FileStat{
+				Kind: "drive#folder",
+				ID:   id,
+				Name: "",
+			}, nil
+		}
+		return p.GetFileByPath(remotePath)
+	}
+
+	if parentId != "" && !filepath.IsAbs(arg) && !strings.Contains(arg, string(filepath.Separator)) {
+		return p.GetFileStat(parentId, arg)
+	}
+
+	return p.GetFileByPath(remoteTargetPath(arg))
+}
+
+func remoteTargetPath(arg string) string {
+	base := strings.TrimSpace(folder)
+	target := strings.TrimSpace(arg)
+	if target == "" {
+		target = "."
+	}
+	if filepath.IsAbs(target) {
+		return filepath.Clean(target)
+	}
+	return filepath.Clean(filepath.Join(string(filepath.Separator), base, target))
+}
+
+func localOutputRoot(name string) string {
+	if strings.TrimSpace(name) == "" || name == string(filepath.Separator) || name == "." {
+		return output
+	}
+	return filepath.Join(output, name)
+}
+
+func mustGetFile(p *api.PikPak, stat api.FileStat) *api.File {
+	file, err := p.GetFile(stat.ID)
+	if err != nil {
+		logrus.Errorln("Get File Failed:", err)
+		return &api.File{FileStat: stat}
+	}
+	return &file
+}
+
+func progressDisplayName(warp warpFile) string {
+	name := warp.f.Name
+	if base := filepath.Base(filepath.Clean(warp.output)); base != "." && base != string(filepath.Separator) && base != "" {
+		name = filepath.Join(base, name)
+	}
+	return trimRunes(name, progressNameMaxRunes)
+}
+
+func trimRunes(value string, max int) string {
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	if max <= 3 {
+		return string(runes[:max])
+	}
+	return string(runes[:max-3]) + "..."
 }
 
 func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
@@ -258,28 +348,21 @@ func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
 			continue
 		}
 
-		var bar *mpb.Bar = nil
-
-		// This is simple way to display part names
-		// It may be replaced one day.
-		trimeName := func(name string) string {
-			// Fixed value, which is an unwise approach.
-			maxLen := 30
-			if utf8.RuneCountInString(name)+3 > maxLen {
-				return name[:maxLen-3] + "..."
-			}
-			return name
-		}
+		var bar *mpb.Bar
 
 		if pb != nil {
 			bar = pb.AddBar(siz,
 				mpb.PrependDecorators(
-					decor.Name(trimeName(warp.f.Name)),
+					decor.Name(progressDisplayName(warp), decor.WC{W: progressNameMaxRunes + 2, C: decor.DSyncWidth}),
+					decor.CountersKibiByte("% .1f / % .1f", decor.WCSyncSpace),
 					decor.Percentage(decor.WCSyncSpace),
 				),
 				mpb.AppendDecorators(
+					decor.Name(" | ", decor.WCSyncSpace),
+					decor.Name("ETA ", decor.WCSyncSpace),
 					decor.EwmaETA(decor.ET_STYLE_GO, 30),
-					decor.Name(" ] "),
+					decor.Name(" | ", decor.WCSyncSpace),
+					decor.Name("SPD ", decor.WCSyncSpace),
 					decor.EwmaSpeed(decor.SizeB1024(0), "% .2f", 60),
 				),
 			)
@@ -293,13 +376,16 @@ func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
 				logrus.Infoln("Download", warp.f.Name, "Success")
 			}
 			os.Remove(flag)
+			if bar != nil {
+				bar.SetTotal(siz, true)
+			}
 		} else {
 			if pb == nil {
 				logrus.Errorln("Download", warp.f.Name, "Failed:", err)
 			}
-		}
-		if bar != nil {
-			bar.Abort(true)
+			if bar != nil {
+				bar.Abort(false)
+			}
 		}
 		out <- struct{}{}
 	}

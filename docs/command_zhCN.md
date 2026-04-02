@@ -28,27 +28,34 @@
 
 ## 下载
 
-- 下载特定目录(如：`Movies` )下的所有文件
+- 下载 `-p` 指向的目标。如果该目标是文件夹则递归下载，如果是文件则下载该文件
 
   ```bash
   pikpakcli download -p Movies
+  pikpakcli download -p Movies/Peppa_Pig.mp4
   ```
 
-- 下载单个文件
+- 把 `-p` 作为远端基路径，再拼接后面的参数。CLI 会自动判断目标是文件还是文件夹
 
   ```bash
   pikpakcli download -p Movies Peppa_Pig.mp4
-  # or
-  pikpakcli download Movies/Peppa_Pig.mp4
+  pikpakcli download -p Movies Cartoons
+  pikpakcli download -p Movies Kids/Peppa_Pig.mp4
   ```
 
-- 限制同时下载的文件个数 (默认: 3)
+- 如果参数本身是绝对路径，则会覆盖 `-p`
+
+  ```bash
+  pikpakcli download -p Movies /TV/Peppa_Pig.mp4
+  ```
+
+- 限制同时下载的文件个数 (默认: 1)
 
   ```bash
   pikpakcli download -c 5 -p Movies
   ```
 
-- 指定下载文件的输出目录
+- 指定下载内容的输出目录
 
   ```bash
   pikpakcli download -p Movies -o Film
