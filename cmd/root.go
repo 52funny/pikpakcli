@@ -5,7 +5,6 @@ import (
 
 	del "github.com/52funny/pikpakcli/cmd/del"
 	"github.com/52funny/pikpakcli/cmd/download"
-	"github.com/52funny/pikpakcli/cmd/embed"
 	"github.com/52funny/pikpakcli/cmd/list"
 	"github.com/52funny/pikpakcli/cmd/new"
 	"github.com/52funny/pikpakcli/cmd/quota"
@@ -49,7 +48,6 @@ func init() {
 	rootCmd.AddCommand(download.DownloadCmd)
 	rootCmd.AddCommand(share.ShareCommand)
 	rootCmd.AddCommand(new.NewCommand)
-	rootCmd.AddCommand(embed.EmbedCmd)
 	rootCmd.AddCommand(quota.QuotaCmd)
 	rootCmd.AddCommand(list.ListCmd)
 	rootCmd.AddCommand(del.DeleteCmd)
