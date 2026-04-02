@@ -38,6 +38,34 @@ type Quotas struct {
 	CloudDownload Quota `json:"cloud_download"`
 }
 
+type TransferMessage struct {
+	Transfer TransferQuotaCollection `json:"transfer"`
+	Base     TransferQuotaBase       `json:"base"`
+}
+
+type TransferQuotaCollection struct {
+	Offline  TransferQuota `json:"offline"`
+	Download TransferQuota `json:"download"`
+	Upload   TransferQuota `json:"upload"`
+}
+
+type TransferQuotaBase struct {
+	Offline  TransferQuota `json:"offline"`
+	Download TransferQuota `json:"download"`
+	Upload   TransferQuota `json:"upload"`
+}
+
+type TransferQuota struct {
+	Info        string `json:"info"`
+	TotalAssets int64  `json:"total_assets"`
+	Assets      int64  `json:"assets"`
+	Size        int64  `json:"size"`
+}
+
+func (q TransferQuota) Remaining() int64 {
+	return q.TotalAssets - q.Assets
+}
+
 // GetQuota get cloud quota
 func (p *PikPak) GetQuota() (QuotaMessage, error) {
 	req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/drive/v1/about", nil)
@@ -54,4 +82,22 @@ func (p *PikPak) GetQuota() (QuotaMessage, error) {
 		return QuotaMessage{}, err
 	}
 	return quotaMessage, nil
+}
+
+// GetTransferQuota gets monthly transfer quota.
+func (p *PikPak) GetTransferQuota() (TransferMessage, error) {
+	req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/vip/v1/quantity/list?type=transfer&limit=200", nil)
+	if err != nil {
+		return TransferMessage{}, err
+	}
+	bs, err := p.sendRequest(req)
+	if err != nil {
+		return TransferMessage{}, err
+	}
+	var transferMessage TransferMessage
+	err = jsoniter.Unmarshal(bs, &transferMessage)
+	if err != nil {
+		return TransferMessage{}, err
+	}
+	return transferMessage, nil
 }

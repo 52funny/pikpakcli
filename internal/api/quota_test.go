@@ -17,3 +17,8 @@ func TestQuotaRemainingInvalid(t *testing.T) {
 	_, err := (Quota{Limit: "bad", Usage: "3"}).Remaining()
 	require.Error(t, err)
 }
+
+func TestTransferQuotaRemaining(t *testing.T) {
+	remaining := (TransferQuota{TotalAssets: 10, Assets: 3}).Remaining()
+	assert.Equal(t, int64(7), remaining)
+}

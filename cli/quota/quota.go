@@ -36,6 +36,13 @@ var QuotaCmd = &cobra.Command{
 		}
 
 		displayCloudDownload(q.Quotas.CloudDownload)
+
+		transfer, err := p.GetTransferQuota()
+		if err != nil {
+			logrus.Errorln("get transfer quota error:", err)
+			return
+		}
+		displayMonthlyTransferQuota(transfer.Base)
 	},
 }
 
@@ -48,8 +55,34 @@ func displayCloudDownload(cloudDownload api.Quota) {
 	fmt.Printf("%-20s%-20s%-20s\n", "total", "used", "remaining")
 	remaining, err := cloudDownload.Remaining()
 	if err != nil {
-		fmt.Printf("%-20s%-20s%-20s\n", cloudDownload.Limit, cloudDownload.Usage, "N/A")
+		fmt.Printf("%-20s%-20s%-20s\n", formatQuotaValue(cloudDownload.Limit), formatQuotaValue(cloudDownload.Usage), "N/A")
 		return
 	}
-	fmt.Printf("%-20s%-20s%-20d\n", cloudDownload.Limit, cloudDownload.Usage, remaining)
+	fmt.Printf("%-20s%-20s%-20s\n", formatQuotaValue(cloudDownload.Limit), formatQuotaValue(cloudDownload.Usage), formatTransferValue(remaining))
+}
+
+func displayMonthlyTransferQuota(base api.TransferQuotaBase) {
+	fmt.Printf("\nmonthly transfer:\n")
+	fmt.Printf("%-20s%-20s%-20s%-20s\n", "type", "total", "used", "remaining")
+	displayTransferRow("cloud download", base.Offline)
+	displayTransferRow("download", base.Download)
+	displayTransferRow("upload", base.Upload)
+}
+
+func displayTransferRow(name string, quota api.TransferQuota) {
+	fmt.Printf(
+		"%-20s%-20s%-20s%-20s\n",
+		name,
+		formatTransferValue(quota.TotalAssets),
+		formatTransferValue(quota.Assets),
+		formatTransferValue(quota.Remaining()),
+	)
+}
+
+func formatTransferValue(size int64) string {
+	return utils.FormatStorage(fmt.Sprintf("%d", size), human)
+}
+
+func formatQuotaValue(size string) string {
+	return utils.FormatStorage(size, human)
 }
