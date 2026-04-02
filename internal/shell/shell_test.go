@@ -69,6 +69,18 @@ func TestResolveShellPath(t *testing.T) {
 			target:      "/TV Shows/Drama",
 			want:        "/TV Shows/Drama",
 		},
+		{
+			name:        "clean repeated separators",
+			currentPath: "/Movies",
+			target:      "Kids//Cartoons",
+			want:        "/Movies/Kids/Cartoons",
+		},
+		{
+			name:        "empty target goes root",
+			currentPath: "/Movies/Kids",
+			target:      "",
+			want:        "/",
+		},
 	}
 
 	for _, tt := range tests {
@@ -166,6 +178,30 @@ func TestCompleterCDPath(t *testing.T) {
 	candidates, offset := completer.Do([]rune("cd /Mov"), len("cd /Mov"))
 	require.Equal(t, len([]rune("/Mov")), offset)
 	require.Contains(t, candidates, []rune("ies/"))
+}
+
+func TestCompleterCDPathFromCurrentDirectory(t *testing.T) {
+	completer := &shellAutoCompleter{
+		rootCmd: &cobra.Command{Use: "pikpakcli"},
+		fileStatSource: fakeFileStatProvider{
+			folders: map[string][]pikpak.FileStat{
+				"movies-id": {
+					{Name: "Kids Cartoons", Kind: "drive#folder"},
+					{Name: "Drama", Kind: "drive#folder"},
+				},
+			},
+			ids: map[string]string{
+				"/Movies": "movies-id",
+			},
+		},
+		currentPath: func() string {
+			return "/Movies"
+		},
+	}
+
+	candidates, offset := completer.Do([]rune("cd Ki"), len("cd Ki"))
+	require.Equal(t, len([]rune("Ki")), offset)
+	require.Contains(t, candidates, []rune("ds Cartoons/"))
 }
 
 type fakeFileStatProvider struct {
