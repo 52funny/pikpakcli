@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ var ShareCommand = &cobra.Command{
 	Aliases: []string{"d"},
 	Short:   `Share file links on the pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
@@ -58,7 +58,7 @@ func init() {
 }
 
 // Share folder
-func shareFolder(p *pikpak.PikPak, f *os.File) {
+func shareFolder(p *api.PikPak, f *os.File) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetDeepFolderId("", folder)
@@ -81,7 +81,7 @@ func shareFolder(p *pikpak.PikPak, f *os.File) {
 }
 
 // Share files
-func shareFiles(p *pikpak.PikPak, args []string, f *os.File) {
+func shareFiles(p *api.PikPak, args []string, f *os.File) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(folder)

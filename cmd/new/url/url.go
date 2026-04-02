@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ var NewUrlCommand = &cobra.Command{
 	Use:   "url",
 	Short: `Create a file according to url`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
@@ -71,7 +71,7 @@ func init() {
 }
 
 // new folder
-func handleNewUrl(p *pikpak.PikPak, shas []string) {
+func handleNewUrl(p *api.PikPak, shas []string) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
@@ -90,7 +90,7 @@ func handleNewUrl(p *pikpak.PikPak, shas []string) {
 	}
 }
 
-func handleCli(p *pikpak.PikPak) {
+func handleCli(p *api.PikPak) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)

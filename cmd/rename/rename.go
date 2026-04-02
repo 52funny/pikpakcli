@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ var RenameCmd = &cobra.Command{
 Example: pikpakcli rename /my-folder/old-name.txt new-name.txt`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
 			logrus.Errorln("Login failed:", err)
 			return err

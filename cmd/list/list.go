@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
@@ -20,7 +20,7 @@ var ListCmd = &cobra.Command{
 	Use:   "ls",
 	Short: `Get the directory information under the specified folder`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
@@ -40,7 +40,7 @@ func init() {
 	ListCmd.Flags().StringVarP(&parentId, "parent-id", "P", "", "display the specified parent id")
 }
 
-func handle(p *pikpak.PikPak, args []string, long, human bool, path, parentId string) {
+func handle(p *api.PikPak, args []string, long, human bool, path, parentId string) {
 	var err error
 	if len(args) > 0 {
 		path = args[0]
@@ -68,7 +68,7 @@ func handle(p *pikpak.PikPak, args []string, long, human bool, path, parentId st
 
 // mode 0: normal print
 // mode 2: long format
-func display(mode int, file *pikpak.FileStat) {
+func display(mode int, file *api.FileStat) {
 	size := utils.FormatStorage(file.Size, human)
 
 	switch mode {

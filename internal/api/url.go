@@ -1,4 +1,4 @@
-package pikpak
+package api
 
 import (
 	"bytes"
@@ -6,22 +6,15 @@ import (
 	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/sirupsen/logrus"
 )
 
-func (p *PikPak) CreateShaFile(parentId, fileName, size, sha string) error {
+func (p *PikPak) CreateUrlFile(parentId, url string) error {
 	m := map[string]interface{}{
-		"body": map[string]string{
-			"duration": "",
-			"width":    "",
-			"height":   "",
-		},
 		"kind":        "drive#file",
-		"name":        fileName,
-		"size":        size,
-		"hash":        sha,
-		"upload_type": "UPLOAD_TYPE_RESUMABLE",
-		"objProvider": map[string]string{
-			"provider": "UPLOAD_TYPE_UNKNOWN",
+		"upload_type": "UPLOAD_TYPE_URL",
+		"url": map[string]string{
+			"url": url,
 		},
 	}
 	if parentId != "" {
@@ -59,11 +52,14 @@ START:
 		}
 		return fmt.Errorf("upload file error: %s", jsoniter.Get(bs, "error").ToString())
 	}
-	file := jsoniter.Get(bs, "file")
-	phase := file.Get("phase").ToString()
-	if phase == "PHASE_TYPE_COMPLETE" {
-		return nil
-	} else {
-		return fmt.Errorf("create file error: %s", phase)
-	}
+
+	task := jsoniter.Get(bs, "task")
+	logrus.Debug(task.ToString())
+	// phase := task.Get("phase").ToString()
+	// if phase == "PHASE_TYPE_COMPLETE" {
+	// 	return nil
+	// } else {
+	// 	return fmt.Errorf("create file error: %s", phase)
+	// }
+	return nil
 }

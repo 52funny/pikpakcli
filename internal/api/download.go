@@ -1,4 +1,4 @@
-package pikpak
+package api
 
 import (
 	"errors"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -18,7 +18,7 @@ var DeleteCmd = &cobra.Command{
 	Short:   "Delete files or folders on the PikPak server",
 	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
 			logrus.Errorf("Login failed: %v", err)
 			return
@@ -61,7 +61,7 @@ func groupDeleteTargets(args []string, forceParentPath bool) map[string][]string
 	return targets
 }
 
-func deleteEntries(p *pikpak.PikPak, parentPath string, names []string) error {
+func deleteEntries(p *api.PikPak, parentPath string, names []string) error {
 	parentID, err := p.GetPathFolderId(parentPath)
 	if err != nil {
 		return fmt.Errorf("get path folder id for %s failed: %w", parentPath, err)
@@ -72,7 +72,7 @@ func deleteEntries(p *pikpak.PikPak, parentPath string, names []string) error {
 		return fmt.Errorf("get file list for %s failed: %w", parentPath, err)
 	}
 
-	fileIndex := make(map[string]pikpak.FileStat, len(files))
+	fileIndex := make(map[string]api.FileStat, len(files))
 	for _, file := range files {
 		fileIndex[file.Name] = file
 	}

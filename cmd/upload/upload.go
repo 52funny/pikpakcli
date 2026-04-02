@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -19,8 +19,8 @@ var UploadCmd = &cobra.Command{
 	Aliases: []string{"u"},
 	Short:   `Upload file to pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		pikpak.Concurrent = uploadConcurrency
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		api.Concurrent = uploadConcurrency
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Error(err)
@@ -92,7 +92,7 @@ func disposeExclude() {
 	}
 }
 
-func handleUploadFile(p *pikpak.PikPak, path string) {
+func handleUploadFile(p *api.PikPak, path string) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
@@ -110,7 +110,7 @@ func handleUploadFile(p *pikpak.PikPak, path string) {
 }
 
 // upload files logic
-func handleUploadFolder(p *pikpak.PikPak, path string) {
+func handleUploadFolder(p *api.PikPak, path string) {
 	basePath := filepath.Base(filepath.ToSlash(path))
 	uploadFilePath, err := utils.GetUploadFilePath(path, defaultExcludeRegexp)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -18,7 +18,7 @@ var builtInCommands = []string{"cd", "exit", "help", "quit"}
 
 type fileStatProvider interface {
 	GetPathFolderId(dirPath string) (string, error)
-	GetFolderFileStatList(parentId string) ([]pikpak.FileStat, error)
+	GetFolderFileStatList(parentId string) ([]api.FileStat, error)
 }
 
 type shellAutoCompleter struct {
@@ -35,7 +35,7 @@ func Start(rootCmd *cobra.Command) {
 
 	currentPath := "/"
 
-	p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+	p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 	if err := p.Login(); err != nil {
 		fmt.Fprintf(os.Stderr, "Login failed: %v\n", err)
 		return
@@ -209,7 +209,7 @@ func promptForPath(currentPath string) string {
 	return fmt.Sprintf("pikpak %s/ > ", currentPath)
 }
 
-func changeDirectory(p *pikpak.PikPak, currentPath string, args []string) (string, error) {
+func changeDirectory(p *api.PikPak, currentPath string, args []string) (string, error) {
 	target := "/"
 	if len(args) > 0 {
 		target = args[0]

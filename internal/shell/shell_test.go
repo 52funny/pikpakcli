@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -165,7 +165,7 @@ func TestCompleterCDPath(t *testing.T) {
 	completer := &shellAutoCompleter{
 		rootCmd: &cobra.Command{Use: "pikpakcli"},
 		fileStatSource: fakeFileStatProvider{
-			folders: map[string][]pikpak.FileStat{
+			folders: map[string][]api.FileStat{
 				"": {
 					{Name: "Movies", Kind: "drive#folder"},
 					{Name: "Music", Kind: "drive#folder"},
@@ -192,7 +192,7 @@ func TestCompleterCDPathFromCurrentDirectory(t *testing.T) {
 	completer := &shellAutoCompleter{
 		rootCmd: &cobra.Command{Use: "pikpakcli"},
 		fileStatSource: fakeFileStatProvider{
-			folders: map[string][]pikpak.FileStat{
+			folders: map[string][]api.FileStat{
 				"movies-id": {
 					{Name: "Kids Cartoons", Kind: "drive#folder"},
 					{Name: "Drama", Kind: "drive#folder"},
@@ -213,7 +213,7 @@ func TestCompleterCDPathFromCurrentDirectory(t *testing.T) {
 }
 
 type fakeFileStatProvider struct {
-	folders map[string][]pikpak.FileStat
+	folders map[string][]api.FileStat
 	ids     map[string]string
 }
 
@@ -224,6 +224,6 @@ func (f fakeFileStatProvider) GetPathFolderId(dirPath string) (string, error) {
 	return "", nil
 }
 
-func (f fakeFileStatProvider) GetFolderFileStatList(parentId string) ([]pikpak.FileStat, error) {
+func (f fakeFileStatProvider) GetFolderFileStatList(parentId string) ([]api.FileStat, error) {
 	return f.folders[parentId], nil
 }

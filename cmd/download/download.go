@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -20,7 +20,7 @@ var DownloadCmd = &cobra.Command{
 	Aliases: []string{"d"},
 	Short:   `Download file from pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
@@ -57,12 +57,12 @@ var output string
 var progress bool
 
 type warpFile struct {
-	f      *pikpak.File
+	f      *api.File
 	output string
 }
 
 type warpStat struct {
-	s      pikpak.FileStat
+	s      api.FileStat
 	output string
 }
 
@@ -75,7 +75,7 @@ func init() {
 }
 
 // Downloads all files in the specified directory
-func downloadFolder(p *pikpak.PikPak) {
+func downloadFolder(p *api.PikPak) {
 	base := filepath.Base(folder)
 	var err error
 	if parentId == "" {
@@ -145,7 +145,7 @@ func downloadFolder(p *pikpak.PikPak) {
 	}
 }
 
-func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, parentPath string) {
+func recursive(p *api.PikPak, collectWarpFile *[]warpStat, parentId string, parentPath string) {
 	statList, err := p.GetFolderFileStatList(parentId)
 	if err != nil {
 		logrus.Errorln("Get Folder File Stat List Failed:", err)
@@ -165,7 +165,7 @@ func recursive(p *pikpak.PikPak, collectWarpFile *[]warpStat, parentId string, p
 	}
 }
 
-func downloadFile(p *pikpak.PikPak, args []string) {
+func downloadFile(p *api.PikPak, args []string) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(folder)

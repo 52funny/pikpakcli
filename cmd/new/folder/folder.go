@@ -2,7 +2,7 @@ package folder
 
 import (
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -11,7 +11,7 @@ var NewFolderCommand = &cobra.Command{
 	Use:   "folder",
 	Short: `Create a folder to pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
@@ -33,7 +33,7 @@ func init() {
 }
 
 // new folder
-func handleNewFolder(p *pikpak.PikPak, folders []string) {
+func handleNewFolder(p *api.PikPak, folders []string) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)

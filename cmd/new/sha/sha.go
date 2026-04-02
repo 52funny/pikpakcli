@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/52funny/pikpakcli/internal/pikpak"
+	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ var NewShaCommand = &cobra.Command{
 	Use:   "sha",
 	Short: `Create a file according to sha`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := pikpak.NewPikPak(conf.Config.Username, conf.Config.Password)
+		p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
 			logrus.Errorln("Login Failed:", err)
@@ -63,7 +63,7 @@ func init() {
 }
 
 // new folder
-func handleNewSha(p *pikpak.PikPak, shas []string) {
+func handleNewSha(p *api.PikPak, shas []string) {
 	var err error
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
