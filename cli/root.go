@@ -1,16 +1,16 @@
-package cmd
+package cli
 
 import (
 	"os"
 
-	del "github.com/52funny/pikpakcli/cmd/del"
-	"github.com/52funny/pikpakcli/cmd/download"
-	"github.com/52funny/pikpakcli/cmd/list"
-	"github.com/52funny/pikpakcli/cmd/new"
-	"github.com/52funny/pikpakcli/cmd/quota"
-	"github.com/52funny/pikpakcli/cmd/rename"
-	"github.com/52funny/pikpakcli/cmd/share"
-	"github.com/52funny/pikpakcli/cmd/upload"
+	del "github.com/52funny/pikpakcli/cli/del"
+	"github.com/52funny/pikpakcli/cli/download"
+	"github.com/52funny/pikpakcli/cli/list"
+	"github.com/52funny/pikpakcli/cli/new"
+	"github.com/52funny/pikpakcli/cli/quota"
+	"github.com/52funny/pikpakcli/cli/rename"
+	"github.com/52funny/pikpakcli/cli/share"
+	"github.com/52funny/pikpakcli/cli/upload"
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

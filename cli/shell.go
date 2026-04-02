@@ -1,4 +1,4 @@
-package cmd
+package cli
 
 import (
 	ishell "github.com/52funny/pikpakcli/internal/shell"

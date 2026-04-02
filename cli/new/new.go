@@ -1,9 +1,9 @@
 package new
 
 import (
-	"github.com/52funny/pikpakcli/cmd/new/folder"
-	"github.com/52funny/pikpakcli/cmd/new/sha"
-	"github.com/52funny/pikpakcli/cmd/new/url"
+	"github.com/52funny/pikpakcli/cli/new/folder"
+	"github.com/52funny/pikpakcli/cli/new/sha"
+	"github.com/52funny/pikpakcli/cli/new/url"
 	"github.com/spf13/cobra"
 )
 
