@@ -6,11 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"net/url"
+	"strings"
 	"time"
 	"unsafe"
 
 	"github.com/52funny/pikpakcli/internal/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
@@ -89,6 +93,8 @@ type fileListResult struct {
 	Files         []FileStat `json:"files"`
 }
 
+const maxListRetries = 3
+
 func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 	filters := `{"trashed":{"eq":false}}`
 	query := url.Values{}
@@ -100,13 +106,7 @@ func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 	fileList := make([]FileStat, 0)
 
 	for {
-		req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files?"+query.Encode(), nil)
-		if err != nil {
-			return fileList, err
-		}
-		req.Header.Set("X-Captcha-Token", p.CaptchaToken)
-		req.Header.Set("Content-Type", "application/json")
-		bs, err := p.sendRequest(req)
+		bs, err := p.getFolderFileStatPage(query)
 		if err != nil {
 			return fileList, err
 		}
@@ -129,6 +129,49 @@ func (p *PikPak) GetFolderFileStatList(parentId string) ([]FileStat, error) {
 		query.Set("page_token", result.NextPageToken)
 	}
 	return fileList, nil
+}
+
+func (p *PikPak) getFolderFileStatPage(query url.Values) ([]byte, error) {
+	var lastErr error
+	for attempt := 0; attempt < maxListRetries; attempt++ {
+		req, err := p.newRequest("GET", "https://api-drive.mypikpak.com/drive/v1/files?"+query.Encode(), nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("X-Captcha-Token", p.CaptchaToken)
+		req.Header.Set("Content-Type", "application/json")
+		bs, err := p.sendRequest(req)
+		if err == nil {
+			return bs, nil
+		}
+		lastErr = err
+		if !isRetryableListError(err) || attempt == maxListRetries-1 {
+			break
+		}
+		logrus.Warnf("List folder interrupted, retrying (%d/%d): %v", attempt+1, maxListRetries-1, err)
+		time.Sleep(time.Duration(attempt+1) * 200 * time.Millisecond)
+	}
+	return nil, lastErr
+}
+
+func isRetryableListError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "unexpected eof") ||
+		strings.Contains(message, "connection reset by peer") ||
+		strings.Contains(message, "connection closed") ||
+		strings.Contains(message, "broken pipe")
 }
 
 // Find FileState similar to name in the parentId directory

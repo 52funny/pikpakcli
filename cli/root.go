@@ -5,6 +5,7 @@ import (
 
 	del "github.com/52funny/pikpakcli/cli/del"
 	"github.com/52funny/pikpakcli/cli/download"
+	"github.com/52funny/pikpakcli/cli/empty"
 	"github.com/52funny/pikpakcli/cli/list"
 	"github.com/52funny/pikpakcli/cli/new"
 	"github.com/52funny/pikpakcli/cli/quota"
@@ -51,6 +52,7 @@ func init() {
 	rootCmd.AddCommand(quota.QuotaCmd)
 	rootCmd.AddCommand(list.ListCmd)
 	rootCmd.AddCommand(del.DeleteCmd)
+	rootCmd.AddCommand(empty.EmptyCmd)
 	rootCmd.AddCommand(rename.RenameCmd)
 	rootCmd.AddCommand(shellCmd)
 }
