@@ -5,13 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 )
-
-func Contains(alreadySyncFiles []string, f string) bool {
-	return slices.Contains(alreadySyncFiles, f)
-}
 
 func SplitSeparator(path string) []string {
 	if path == "" {
@@ -30,6 +25,28 @@ func Slash(path string) string {
 		return path[1:]
 	}
 	return path
+}
+
+func SplitRemotePath(path string) (dir string, name string) {
+	path = filepath.Clean(path)
+	if path == "." || path == string(filepath.Separator) {
+		return "", ""
+	}
+
+	name = filepath.Base(path)
+	if name == "." || name == string(filepath.Separator) {
+		return "", ""
+	}
+
+	dir = filepath.Dir(path)
+	if dir == "." {
+		dir = ""
+	}
+	if dir == "" {
+		return "", name
+	}
+
+	return Slash(dir), name
 }
 
 // 获取目录文件夹下的所有文件路径名

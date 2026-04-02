@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/52funny/pikpakhash v0.0.0-20231104025731-ef91a56eff9c
+	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.15.0
 	github.com/json-iterator/go v1.1.12
 	github.com/sirupsen/logrus v1.9.0
@@ -17,7 +18,6 @@ require (
 require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
-	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

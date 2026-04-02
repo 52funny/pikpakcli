@@ -123,3 +123,53 @@
   ```bash
   pikpakcli ls -lH -p /
   ```
+
+## Delete
+
+- Delete a file by full path from the PikPak cloud.
+
+  ```bash
+  pikpakcli delete /Movies/Peppa_Pig.mp4
+  ```
+
+- Delete entries from a specific directory using the `-p` flag.
+
+  ```bash
+  pikpakcli delete -p /Movies Peppa_Pig.mp4
+  ```
+
+- Delete multiple entries under the same path.
+
+  ```bash
+  pikpakcli delete -p /Movies File1.mp4 File2.mp4
+  ```
+
+## Rename
+
+- Rename a file or folder by full path.
+
+  ```bash
+  pikpakcli rename /Movies/Peppa_Pig.mp4 Peppa_Pig_S01E01.mp4
+  ```
+
+- Rename a folder.
+
+  ```bash
+  pikpakcli rename /Movies/Cartoons Kids
+  ```
+
+## Shell
+
+- Start the interactive shell.
+
+  ```bash
+  pikpakcli shell
+  ```
+
+- Change directory and list files in the current path.
+
+  ```bash
+  pikpakcli shell
+  cd "/Movies/Kids Cartoons"
+  ls
+  ```

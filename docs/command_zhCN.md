@@ -120,3 +120,53 @@
   ```bash
   pikpakcli ls -lH -p /
   ```
+
+## 删除
+
+- 按完整路径删除文件
+
+  ```bash
+  pikpakcli delete /Movies/Peppa_Pig.mp4
+  ```
+
+- 使用 `-p` 指定父目录后删除其中的文件或文件夹
+
+  ```bash
+  pikpakcli delete -p /Movies Peppa_Pig.mp4
+  ```
+
+- 在同一路径下同时删除多个文件或文件夹
+
+  ```bash
+  pikpakcli delete -p /Movies File1.mp4 File2.mp4
+  ```
+
+## 重命名
+
+- 按完整路径重命名文件或文件夹
+
+  ```bash
+  pikpakcli rename /Movies/Peppa_Pig.mp4 Peppa_Pig_S01E01.mp4
+  ```
+
+- 重命名文件夹
+
+  ```bash
+  pikpakcli rename /Movies/Cartoons Kids
+  ```
+
+## 交互 Shell
+
+- 启动交互式 shell
+
+  ```bash
+  pikpakcli shell
+  ```
+
+- 在 shell 中切换目录并查看当前目录文件
+
+  ```bash
+  pikpakcli shell
+  cd "/Movies/Kids Cartoons"
+  ls
+  ```

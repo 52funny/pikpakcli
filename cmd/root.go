@@ -3,14 +3,15 @@ package cmd
 import (
 	"os"
 
+	del "github.com/52funny/pikpakcli/cmd/del"
 	"github.com/52funny/pikpakcli/cmd/download"
 	"github.com/52funny/pikpakcli/cmd/embed"
 	"github.com/52funny/pikpakcli/cmd/list"
 	"github.com/52funny/pikpakcli/cmd/new"
 	"github.com/52funny/pikpakcli/cmd/quota"
+	"github.com/52funny/pikpakcli/cmd/rename"
 	"github.com/52funny/pikpakcli/cmd/share"
 	"github.com/52funny/pikpakcli/cmd/upload"
-
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -53,6 +54,9 @@ func init() {
 	rootCmd.AddCommand(embed.EmbedCmd)
 	rootCmd.AddCommand(quota.QuotaCmd)
 	rootCmd.AddCommand(list.ListCmd)
+	rootCmd.AddCommand(del.DeleteCmd)
+	rootCmd.AddCommand(rename.RenameCmd)
+	rootCmd.AddCommand(shellCmd)
 }
 
 // Execute the command line interface
@@ -61,16 +65,4 @@ func Execute() {
 		logrus.Errorln(err)
 		os.Exit(1)
 	}
-}
-
-// ExecuteShell: Interactive shell
-func ExecuteShell(shellStarter func(*cobra.Command)) {
-	// Init Config
-	err := conf.InitConfig("config.yml")
-	if err != nil {
-		logrus.Errorln(err)
-		os.Exit(1)
-	}
-	// Exec shell
-	shellStarter(rootCmd)
 }

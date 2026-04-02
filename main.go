@@ -1,18 +1,7 @@
 package main
 
-import (
-	"os"
-
-	"github.com/52funny/pikpakcli/cmd"
-	"github.com/52funny/pikpakcli/internal/shell"
-)
+import "github.com/52funny/pikpakcli/cmd"
 
 func main() {
-	// Check if any args
-	if len(os.Args) == 1 {
-		cmd.ExecuteShell(shell.Start)
-	} else {
-		// If no arg, execute the command directly
-		cmd.Execute()
-	}
+	cmd.Execute()
 }
