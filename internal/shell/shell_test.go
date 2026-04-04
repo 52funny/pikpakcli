@@ -197,6 +197,85 @@ func TestClearScreen(t *testing.T) {
 	require.Equal(t, clearScreenSequence, out.String())
 }
 
+func TestAdaptShellArgs(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+
+	listCmd := &cobra.Command{Use: "ls"}
+	listCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(listCmd)
+
+	emptyCmd := &cobra.Command{Use: "empty"}
+	emptyCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(emptyCmd)
+
+	downloadCmd := &cobra.Command{Use: "download"}
+	downloadCmd.Flags().StringP("path", "p", "/", "")
+	downloadCmd.Flags().StringP("parent-id", "P", "", "")
+	rootCmd.AddCommand(downloadCmd)
+
+	shareCmd := &cobra.Command{Use: "share"}
+	shareCmd.Flags().StringP("path", "p", "/", "")
+	shareCmd.Flags().StringP("parent-id", "P", "", "")
+	rootCmd.AddCommand(shareCmd)
+
+	uploadCmd := &cobra.Command{Use: "upload"}
+	uploadCmd.Flags().StringP("path", "p", "/", "")
+	uploadCmd.Flags().StringP("parent-id", "P", "", "")
+	rootCmd.AddCommand(uploadCmd)
+
+	deleteCmd := &cobra.Command{Use: "delete"}
+	deleteCmd.Aliases = []string{"del", "rm"}
+	deleteCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(deleteCmd)
+
+	renameCmd := &cobra.Command{Use: "rename"}
+	rootCmd.AddCommand(renameCmd)
+
+	newCmd := &cobra.Command{Use: "new"}
+	newCmd.Aliases = []string{"n"}
+	newFolderCmd := &cobra.Command{Use: "folder"}
+	newFolderCmd.Flags().StringP("path", "p", "/", "")
+	newFolderCmd.Flags().StringP("parent-id", "P", "", "")
+	newCmd.AddCommand(newFolderCmd)
+	newURLCmd := &cobra.Command{Use: "url"}
+	newURLCmd.Flags().StringP("path", "p", "/", "")
+	newURLCmd.Flags().StringP("parent-id", "P", "", "")
+	newCmd.AddCommand(newURLCmd)
+	newSHACmd := &cobra.Command{Use: "sha"}
+	newSHACmd.Flags().StringP("path", "p", "/", "")
+	newSHACmd.Flags().StringP("parent-id", "P", "", "")
+	newCmd.AddCommand(newSHACmd)
+	rootCmd.AddCommand(newCmd)
+
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{name: "ls injects current path", args: []string{"ls"}, want: []string{"ls", "-p", "/Movies"}},
+		{name: "ls rewrites relative arg", args: []string{"ls", "Kids"}, want: []string{"ls", "/Movies/Kids"}},
+		{name: "empty rewrites relative arg", args: []string{"empty", "Kids"}, want: []string{"empty", "/Movies/Kids"}},
+		{name: "download injects current path", args: []string{"download", "episode.mkv"}, want: []string{"download", "-p", "/Movies", "episode.mkv"}},
+		{name: "download rewrites relative path flag", args: []string{"download", "-p", "Kids", "episode.mkv"}, want: []string{"download", "-p", "/Movies/Kids", "episode.mkv"}},
+		{name: "download keeps trailing dot as positional target", args: []string{"download", "-g", "episode.mkv", "."}, want: []string{"download", "-p", "/Movies", "-g", "episode.mkv", "."}},
+		{name: "share injects current path", args: []string{"share", "episode.mkv"}, want: []string{"share", "-p", "/Movies", "episode.mkv"}},
+		{name: "upload injects current path", args: []string{"upload", "local.file"}, want: []string{"upload", "-p", "/Movies", "local.file"}},
+		{name: "delete rewrites relative args", args: []string{"delete", "a", "b/c"}, want: []string{"delete", "/Movies/a", "/Movies/b/c"}},
+		{name: "rm alias rewrites relative args", args: []string{"rm", "a", "b/c"}, want: []string{"rm", "/Movies/a", "/Movies/b/c"}},
+		{name: "rename rewrites first arg only", args: []string{"rename", "old.txt", "new.txt"}, want: []string{"rename", "/Movies/old.txt", "new.txt"}},
+		{name: "new folder injects current path", args: []string{"new", "folder", "a/b"}, want: []string{"new", "folder", "-p", "/Movies", "a/b"}},
+		{name: "new alias folder injects current path", args: []string{"n", "folder", "a/b"}, want: []string{"n", "folder", "-p", "/Movies", "a/b"}},
+		{name: "new url injects current path", args: []string{"new", "url", "https://example.com"}, want: []string{"new", "url", "-p", "/Movies", "https://example.com"}},
+		{name: "new sha injects current path", args: []string{"new", "sha", "PikPak://a|1|sha"}, want: []string{"new", "sha", "-p", "/Movies", "PikPak://a|1|sha"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, adaptShellArgs(rootCmd, "/Movies", tt.args))
+		})
+	}
+}
+
 func TestCompleterCDPath(t *testing.T) {
 	completer := &shellAutoCompleter{
 		rootCmd: &cobra.Command{Use: "pikpakcli"},

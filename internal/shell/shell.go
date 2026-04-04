@@ -118,10 +118,7 @@ func Start(rootCmd *cobra.Command) {
 			l.SetPrompt(promptForPath(currentPath))
 			continue
 		}
-
-		if len(args) == 1 && args[0] == "ls" {
-			args = append(args, "-p", currentPath)
-		}
+		args = adaptShellArgs(rootCmd, currentPath, args)
 
 		cmdCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		setCommandContextTree(rootCmd, cmdCtx)
@@ -246,6 +243,147 @@ func promptForPath(currentPath string) string {
 
 func clearScreen(w io.Writer) {
 	fmt.Fprint(w, clearScreenSequence)
+}
+
+func adaptShellArgs(rootCmd *cobra.Command, currentPath string, args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+
+	cmd, consumed := resolveCommand(rootCmd, args)
+	if consumed == 0 {
+		return args
+	}
+
+	commandKey := canonicalCommandKey(rootCmd, cmd)
+	rest := append([]string{}, args[consumed:]...)
+	flags := inspectShellArgs(rest)
+
+	switch commandKey {
+	case "ls", "empty":
+		rest = rewritePositionalPaths(rest, currentPath, 1)
+		if flags.positionals == 0 && !flags.hasPath && !flags.hasParentID {
+			rest = append([]string{"-p", currentPath}, rest...)
+		}
+	case "download", "share", "upload", "new folder", "new url", "new sha":
+		rest = rewritePathFlagValues(rest, currentPath)
+		if !flags.hasPath && !flags.hasParentID {
+			rest = append([]string{"-p", currentPath}, rest...)
+		}
+	case "delete":
+		if !flags.hasPath {
+			rest = rewritePositionalPaths(rest, currentPath, -1)
+		}
+	case "rename":
+		rest = rewritePositionalPaths(rest, currentPath, 1)
+	}
+
+	return append(append([]string{}, args[:consumed]...), rest...)
+}
+
+func canonicalCommandKey(rootCmd *cobra.Command, cmd *cobra.Command) string {
+	if cmd == nil {
+		return ""
+	}
+	path := cmd.CommandPath()
+	rootName := rootCmd.Name()
+	if path == rootName {
+		return ""
+	}
+	return strings.TrimPrefix(path, rootName+" ")
+}
+
+type shellArgFlags struct {
+	hasPath     bool
+	hasParentID bool
+	positionals int
+}
+
+func inspectShellArgs(args []string) shellArgFlags {
+	var flags shellArgFlags
+	stopFlags := false
+	for i := 0; i < len(args); i++ {
+		token := args[i]
+		if stopFlags {
+			flags.positionals++
+			continue
+		}
+		switch {
+		case token == "--":
+			stopFlags = true
+		case token == "--path" || token == "-p":
+			flags.hasPath = true
+			if i+1 < len(args) {
+				i++
+			}
+		case strings.HasPrefix(token, "--path=") || strings.HasPrefix(token, "-p="):
+			flags.hasPath = true
+		case token == "--parent-id" || token == "-P":
+			flags.hasParentID = true
+			if i+1 < len(args) {
+				i++
+			}
+		case strings.HasPrefix(token, "--parent-id=") || strings.HasPrefix(token, "-P="):
+			flags.hasParentID = true
+		case strings.HasPrefix(token, "-"):
+		default:
+			flags.positionals++
+		}
+	}
+	return flags
+}
+
+func rewritePathFlagValues(args []string, currentPath string) []string {
+	rewritten := append([]string{}, args...)
+	for i := 0; i < len(rewritten); i++ {
+		switch token := rewritten[i]; {
+		case token == "--path" || token == "-p":
+			if i+1 < len(rewritten) {
+				rewritten[i+1] = resolveShellPath(currentPath, rewritten[i+1])
+				i++
+			}
+		case strings.HasPrefix(token, "--path="):
+			rewritten[i] = "--path=" + resolveShellPath(currentPath, strings.TrimPrefix(token, "--path="))
+		case strings.HasPrefix(token, "-p="):
+			rewritten[i] = "-p=" + resolveShellPath(currentPath, strings.TrimPrefix(token, "-p="))
+		}
+	}
+	return rewritten
+}
+
+func rewritePositionalPaths(args []string, currentPath string, limit int) []string {
+	rewritten := append([]string{}, args...)
+	stopFlags := false
+	rewrittenCount := 0
+
+	for i := 0; i < len(rewritten); i++ {
+		token := rewritten[i]
+		if stopFlags {
+			if limit < 0 || rewrittenCount < limit {
+				rewritten[i] = resolveShellPath(currentPath, token)
+				rewrittenCount++
+			}
+			continue
+		}
+
+		switch {
+		case token == "--":
+			stopFlags = true
+		case token == "--path" || token == "-p" || token == "--parent-id" || token == "-P" || token == "--output" || token == "-o" || token == "--input" || token == "-i" || token == "--count" || token == "-c":
+			if i+1 < len(rewritten) {
+				i++
+			}
+		case strings.HasPrefix(token, "-"):
+		default:
+			if limit >= 0 && rewrittenCount >= limit {
+				continue
+			}
+			rewritten[i] = resolveShellPath(currentPath, token)
+			rewrittenCount++
+		}
+	}
+
+	return rewritten
 }
 
 func changeDirectory(p *api.PikPak, currentPath string, args []string) (string, error) {

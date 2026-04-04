@@ -2,6 +2,8 @@ package folder
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
@@ -38,9 +40,10 @@ func init() {
 
 // new folder
 func handleNewFolder(p *api.PikPak, folders []string) {
+	baseParentID := parentId
 	var err error
-	if parentId == "" {
-		parentId, err = p.GetPathFolderId(path)
+	if baseParentID == "" {
+		baseParentID, err = p.GetPathFolderId(path)
 		if err != nil {
 			fmt.Println("Get parent id failed")
 			logx.Error(err)
@@ -49,7 +52,24 @@ func handleNewFolder(p *api.PikPak, folders []string) {
 	}
 
 	for _, folder := range folders {
-		_, err := p.CreateFolder(parentId, folder)
+		folder = strings.TrimSpace(folder)
+		if folder == "" {
+			fmt.Println("Folder name cannot be empty")
+			continue
+		}
+
+		cleanFolder := filepath.Clean(folder)
+		if cleanFolder == "." || cleanFolder == string(filepath.Separator) {
+			fmt.Printf("Folder path is invalid: %s\n", folder)
+			continue
+		}
+
+		createParentID := baseParentID
+		if filepath.IsAbs(cleanFolder) {
+			createParentID = ""
+		}
+
+		_, err := p.GetDeepFolderOrCreateId(createParentID, cleanFolder)
 		if err != nil {
 			fmt.Printf("Create folder %s failed\n", folder)
 			logx.Error(err)

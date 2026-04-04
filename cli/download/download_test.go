@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
 
@@ -125,4 +126,17 @@ func TestResolveDownloadTargetWithoutArgsUsesBaseFolder(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "folder-1", stat.ID)
 	require.Equal(t, api.FileKindFolder, stat.Kind)
+}
+
+func TestRequiresExplicitOutputFlag(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().StringP("output", "o", ".", "")
+
+	require.False(t, requiresExplicitOutputFlag(cmd, []string{"."}))
+	require.True(t, requiresExplicitOutputFlag(cmd, []string{"file.txt", "."}))
+	require.True(t, requiresExplicitOutputFlag(cmd, []string{"file.txt", ".."}))
+	require.False(t, requiresExplicitOutputFlag(cmd, []string{"file.txt"}))
+
+	require.NoError(t, cmd.Flags().Set("output", "."))
+	require.False(t, requiresExplicitOutputFlag(cmd, []string{"file.txt", "."}))
 }

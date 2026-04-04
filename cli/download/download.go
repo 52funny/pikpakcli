@@ -28,7 +28,7 @@ var DownloadCmd = &cobra.Command{
 			logx.Error(err)
 			return
 		}
-		handleDownload(&p, args)
+		handleDownload(cmd, &p, args)
 	},
 }
 
@@ -81,10 +81,15 @@ type downloadTargetResolver interface {
 	GetPathFolderId(dirPath string) (string, error)
 }
 
-func handleDownload(p *api.PikPak, args []string) {
+func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 	if err := utils.CreateDirIfNotExist(output); err != nil {
 		fmt.Println("Create output directory failed")
 		logx.Error(err)
+		return
+	}
+
+	if requiresExplicitOutputFlag(cmd, args) {
+		fmt.Println("Use -o to specify the output directory when downloading specific files")
 		return
 	}
 
@@ -96,6 +101,19 @@ func handleDownload(p *api.PikPak, args []string) {
 	for _, arg := range args {
 		downloadTarget(p, arg)
 	}
+}
+
+func requiresExplicitOutputFlag(cmd *cobra.Command, args []string) bool {
+	if cmd.Flags().Changed("output") || len(args) <= 1 {
+		return false
+	}
+	for _, arg := range args {
+		trimmed := strings.TrimSpace(arg)
+		if trimmed == "." || trimmed == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 func downloadTarget(p *api.PikPak, arg string) {
