@@ -13,9 +13,20 @@ import (
 )
 
 type ConfigType struct {
-	Proxy    string
-	Username string
-	Password string
+	Proxy    string     `yaml:"proxy"`
+	Username string     `yaml:"username"`
+	Password string     `yaml:"password"`
+	Open     OpenConfig `yaml:"open"`
+}
+
+type OpenConfig struct {
+	DownloadDir string   `yaml:"download_dir"`
+	Default     []string `yaml:"default"`
+	Text        []string `yaml:"text"`
+	Image       []string `yaml:"image"`
+	Video       []string `yaml:"video"`
+	Audio       []string `yaml:"audio"`
+	PDF         []string `yaml:"pdf"`
 }
 
 var Config ConfigType

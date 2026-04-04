@@ -1,3 +1,22 @@
+# Proxy URL, for example: http://127.0.0.1:7890
 proxy:
+# PikPak account username or phone number with country code
 username: xxx
+# PikPak account password
 password: xxx
+# Local open command settings used by the interactive shell builtin `open`
+open:
+# Local cache directory for files that need to be downloaded before opening
+  download_dir:
+# Fallback command used when no file-type-specific command is configured
+  default: []
+# Command used to open text and source files
+  text: []
+# Command used to open image files
+  image: []
+# Command used to open video files
+  video: []
+# Command used to open audio files
+  audio: []
+# Command used to open PDF files
+  pdf: []

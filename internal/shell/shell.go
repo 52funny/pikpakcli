@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var builtInCommands = []string{"cd", "clear", "exit", "help", "quit"}
+var builtInCommands = []string{"cd", "clear", "exit", "help", "open", "quit"}
 
 const clearScreenSequence = "\033[H\033[2J"
 
@@ -91,7 +91,12 @@ func Start(rootCmd *cobra.Command) {
 			continue
 		}
 
-		switch input {
+		args := parseShellArgs(input)
+		if len(args) == 0 {
+			continue
+		}
+
+		switch args[0] {
 		case "exit", "quit":
 			fmt.Println("Bye~!")
 			return
@@ -102,14 +107,7 @@ func Start(rootCmd *cobra.Command) {
 			clearScreen(os.Stdout)
 			l.SetPrompt(promptForPath(currentPath))
 			continue
-		}
-
-		args := parseShellArgs(input)
-		if len(args) == 0 {
-			continue
-		}
-
-		if args[0] == "cd" {
+		case "cd":
 			nextPath, err := changeDirectory(&p, currentPath, args[1:])
 			if err != nil {
 				fmt.Println("Change directory failed")
@@ -118,6 +116,16 @@ func Start(rootCmd *cobra.Command) {
 			}
 			currentPath = nextPath
 			l.SetPrompt(promptForPath(currentPath))
+			continue
+		case "open":
+			cmdCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+			if err := handleOpenCommand(p.WithContext(cmdCtx), currentPath, args[1:]); err != nil {
+				fmt.Println(err.Error())
+			}
+			stop()
+			if cmdCtx.Err() != nil {
+				fmt.Println()
+			}
 			continue
 		}
 		args = adaptShellArgs(rootCmd, currentPath, args)
@@ -161,6 +169,9 @@ func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {
 
 	if tokens[0] == "cd" {
 		return c.completeRemotePath(active, true)
+	}
+	if tokens[0] == "open" {
+		return c.completeRemotePath(active, false)
 	}
 
 	cmd, consumed := resolveCommand(c.rootCmd, tokens)

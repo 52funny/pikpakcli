@@ -49,6 +49,8 @@ go build
 - Darwin: `$HOME/Library/Application Support/pikpakcli`
 - Windows: `%AppData%/pikpakcli`
 
+可选的 `open` 配置段可以覆盖交互式 shell 中 `open` 内置命令针对不同文件类型使用的本地程序。
+
 ## 开始
 
 之后你就可以运行 `ls` 指令来查看存储在 **PikPak** 上的文件了

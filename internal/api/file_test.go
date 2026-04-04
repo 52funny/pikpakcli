@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -28,4 +29,17 @@ func TestFakeNetErrorImplementsNetError(t *testing.T) {
 	var err net.Error = fakeNetError{}
 	assert.True(t, err.Timeout())
 	assert.True(t, err.Temporary())
+}
+
+func TestPikPakWithContext(t *testing.T) {
+	base := NewPikPak("user", "pass")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	derived := base.WithContext(ctx)
+
+	assert.NotNil(t, derived)
+	assert.NotSame(t, &base, derived)
+	assert.Equal(t, ctx, derived.requestContext())
+	assert.NotEqual(t, ctx, base.requestContext())
 }

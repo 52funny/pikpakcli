@@ -180,3 +180,11 @@
   cd "/Movies/Kids Cartoons"
   ls
   ```
+
+- Open a remote file from the shell with a local application.
+
+  ```bash
+  pikpakcli shell
+  cd "/Movies"
+  open Peppa_Pig.mp4
+  ```

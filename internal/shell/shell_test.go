@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
@@ -209,6 +211,7 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	require.Equal(t, 2, offset)
 	require.Contains(t, candidates, []rune("ell "))
 	require.Contains(t, commandCandidates(rootCmd), "clear")
+	require.Contains(t, commandCandidates(rootCmd), "open")
 
 	candidates, offset = completer.Do([]rune("ls -"), 4)
 	require.Equal(t, 1, offset)
@@ -239,6 +242,10 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	require.Contains(t, candidates, []rune("ie.mp4"))
 
 	candidates, offset = completer.Do([]rune("rename mov"), len("rename mov"))
+	require.Equal(t, len([]rune("mov")), offset)
+	require.Contains(t, candidates, []rune("ie.mp4"))
+
+	candidates, offset = completer.Do([]rune("open mov"), len("open mov"))
 	require.Equal(t, len([]rune("mov")), offset)
 	require.Contains(t, candidates, []rune("ie.mp4"))
 }
@@ -470,4 +477,93 @@ func (f fakeFileStatProvider) GetPathFolderId(dirPath string) (string, error) {
 
 func (f fakeFileStatProvider) GetFolderFileStatList(parentId string) ([]api.FileStat, error) {
 	return f.folders[parentId], nil
+}
+
+func TestClassifyOpenCategory(t *testing.T) {
+	require.Equal(t, openCategoryText, classifyOpenCategory("readme.md"))
+	require.Equal(t, openCategoryImage, classifyOpenCategory("cover.png"))
+	require.Equal(t, openCategoryVideo, classifyOpenCategory("movie.mkv"))
+	require.Equal(t, openCategoryAudio, classifyOpenCategory("song.flac"))
+	require.Equal(t, openCategoryPDF, classifyOpenCategory("paper.pdf"))
+	require.Equal(t, openCategoryDefault, classifyOpenCategory("archive.zip"))
+}
+
+func TestBuildOpenCommand(t *testing.T) {
+	name, args, err := buildOpenCommand("darwin", conf.OpenConfig{}, "/tmp/demo.txt", openCategoryText)
+	require.NoError(t, err)
+	require.Equal(t, "open", name)
+	require.Equal(t, []string{"-a", "TextEdit", "/tmp/demo.txt"}, args)
+
+	name, args, err = buildOpenCommand("darwin", conf.OpenConfig{}, "/tmp/demo.mp4", openCategoryVideo)
+	require.NoError(t, err)
+	require.Equal(t, "open", name)
+	require.Equal(t, []string{"-a", "IINA", "/tmp/demo.mp4"}, args)
+
+	name, args, err = buildOpenCommand("linux", conf.OpenConfig{
+		Video: []string{"vlc", "--fullscreen"},
+	}, "/tmp/demo.mp4", openCategoryVideo)
+	require.NoError(t, err)
+	require.Equal(t, "vlc", name)
+	require.Equal(t, []string{"--fullscreen", "/tmp/demo.mp4"}, args)
+
+	name, args, err = buildOpenCommand("linux", conf.OpenConfig{
+		Default: []string{"custom-open", "--file", "{path}"},
+	}, "/tmp/demo.bin", openCategoryDefault)
+	require.NoError(t, err)
+	require.Equal(t, "custom-open", name)
+	require.Equal(t, []string{"--file", "/tmp/demo.bin"}, args)
+}
+
+func TestRemoteVideoOpenURL(t *testing.T) {
+	file := &api.File{}
+	file.Medias = []struct {
+		MediaID   string      `json:"media_id"`
+		MediaName string      `json:"media_name"`
+		Video     interface{} `json:"video"`
+		Link      struct {
+			URL    string    `json:"url"`
+			Token  string    `json:"token"`
+			Expire time.Time `json:"expire"`
+		} `json:"link"`
+		NeedMoreQuota  bool          `json:"need_more_quota"`
+		VipTypes       []interface{} `json:"vip_types"`
+		RedirectLink   string        `json:"redirect_link"`
+		IconLink       string        `json:"icon_link"`
+		IsDefault      bool          `json:"is_default"`
+		Priority       int           `json:"priority"`
+		IsOrigin       bool          `json:"is_origin"`
+		ResolutionName string        `json:"resolution_name"`
+		IsVisible      bool          `json:"is_visible"`
+		Category       string        `json:"category"`
+	}{
+		{
+			Link: struct {
+				URL    string    `json:"url"`
+				Token  string    `json:"token"`
+				Expire time.Time `json:"expire"`
+			}{URL: "https://example.com/visible.m3u8"},
+			IsVisible: true,
+		},
+		{
+			Link: struct {
+				URL    string    `json:"url"`
+				Token  string    `json:"token"`
+				Expire time.Time `json:"expire"`
+			}{URL: "https://example.com/default.m3u8"},
+			IsDefault: true,
+			IsVisible: true,
+		},
+	}
+
+	require.Equal(t, "https://example.com/default.m3u8", remoteVideoOpenURL(file))
+}
+
+func TestResolveOpenTargetForVideoPrefersRemoteURL(t *testing.T) {
+	file := &api.File{}
+	file.Name = "movie.mkv"
+	file.Links.ApplicationOctetStream.URL = "https://example.com/download.mp4"
+
+	target, err := resolveOpenTarget(file)
+	require.NoError(t, err)
+	require.Equal(t, "https://example.com/download.mp4", target)
 }

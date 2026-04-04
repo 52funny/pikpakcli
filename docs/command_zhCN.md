@@ -177,3 +177,11 @@
   cd "/Movies/Kids Cartoons"
   ls
   ```
+
+- 在 shell 中打开远端文件到本地默认程序
+
+  ```bash
+  pikpakcli shell
+  cd "/Movies"
+  open Peppa_Pig.mp4
+  ```

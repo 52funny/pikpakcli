@@ -75,6 +75,18 @@ func (p *PikPak) requestContext() context.Context {
 	return context.Background()
 }
 
+func (p *PikPak) WithContext(ctx context.Context) *PikPak {
+	if p == nil {
+		return nil
+	}
+	clone := *p
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	clone.ctx = ctx
+	return &clone
+}
+
 func (p *PikPak) newRequest(method, url string, body io.Reader) (*http.Request, error) {
 	return http.NewRequestWithContext(p.requestContext(), method, url, body)
 }

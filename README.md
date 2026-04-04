@@ -64,6 +64,8 @@ The configuration file will first be read from the current directory (`config.ym
 - Darwin: `$HOME/Library/Application Support/pikpakcli`
 - Windows: `%AppData%/pikpakcli`
 
+The optional `open` section can override which local program is used by the interactive shell `open` builtin for different file categories.
+
 > **For Docker Users:** You need to mount the configuration file into the Docker container. For example, if your `config.yml` is located at `/path/to/your/config.yml`, you can run the Docker container like this:
 
 ```bash
