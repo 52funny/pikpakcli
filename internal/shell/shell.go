@@ -18,7 +18,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var builtInCommands = []string{"cd", "exit", "help", "quit"}
+var builtInCommands = []string{"cd", "clear", "exit", "help", "quit"}
+
+const clearScreenSequence = "\033[H\033[2J"
 
 type fileStatProvider interface {
 	GetPathFolderId(dirPath string) (string, error)
@@ -93,6 +95,10 @@ func Start(rootCmd *cobra.Command) {
 			return
 		case "help":
 			rootCmd.Help()
+			continue
+		case "clear":
+			clearScreen(os.Stdout)
+			l.SetPrompt(promptForPath(currentPath))
 			continue
 		}
 
@@ -236,6 +242,10 @@ func promptForPath(currentPath string) string {
 		return "pikpak / > "
 	}
 	return fmt.Sprintf("pikpak %s/ > ", currentPath)
+}
+
+func clearScreen(w io.Writer) {
+	fmt.Fprint(w, clearScreenSequence)
 }
 
 func changeDirectory(p *api.PikPak, currentPath string, args []string) (string, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/52funny/pikpakcli/internal/api"
@@ -183,10 +184,17 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	candidates, offset := completer.Do([]rune("sh"), 2)
 	require.Equal(t, 2, offset)
 	require.Contains(t, candidates, []rune("ell "))
+	require.Contains(t, commandCandidates(rootCmd), "clear")
 
 	candidates, offset = completer.Do([]rune("ls -"), 4)
 	require.Equal(t, 1, offset)
 	require.Contains(t, candidates, []rune("p "))
+}
+
+func TestClearScreen(t *testing.T) {
+	var out strings.Builder
+	clearScreen(&out)
+	require.Equal(t, clearScreenSequence, out.String())
 }
 
 func TestCompleterCDPath(t *testing.T) {
