@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -171,11 +173,33 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	listCmd := &cobra.Command{Use: "ls"}
 	listCmd.Flags().StringP("path", "p", "/", "")
 	rootCmd.AddCommand(listCmd)
+	emptyCmd := &cobra.Command{Use: "empty"}
+	emptyCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(emptyCmd)
+	downloadCmd := &cobra.Command{Use: "download"}
+	downloadCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(downloadCmd)
+	shareCmd := &cobra.Command{Use: "share"}
+	shareCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(shareCmd)
+	deleteCmd := &cobra.Command{Use: "delete"}
+	deleteCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(deleteCmd)
+	renameCmd := &cobra.Command{Use: "rename"}
+	rootCmd.AddCommand(renameCmd)
 	rootCmd.AddCommand(&cobra.Command{Use: "shell"})
 
 	completer := &shellAutoCompleter{
-		rootCmd:        rootCmd,
-		fileStatSource: fakeFileStatProvider{},
+		rootCmd: rootCmd,
+		fileStatSource: fakeFileStatProvider{
+			folders: map[string][]api.FileStat{
+				"": {
+					{Name: "Movies", Kind: api.FileKindFolder},
+					{Name: "Music", Kind: api.FileKindFolder},
+					{Name: "movie.mp4", Kind: api.FileKindFile},
+				},
+			},
+		},
 		currentPath: func() string {
 			return "/"
 		},
@@ -189,6 +213,111 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	candidates, offset = completer.Do([]rune("ls -"), 4)
 	require.Equal(t, 1, offset)
 	require.Contains(t, candidates, []rune("p "))
+
+	candidates, offset = completer.Do([]rune("ls /Mov"), len("ls /Mov"))
+	require.Equal(t, len([]rune("/Mov")), offset)
+	require.Contains(t, candidates, []rune("ies/"))
+
+	candidates, offset = completer.Do([]rune("empty -p /Mov"), len("empty -p /Mov"))
+	require.Equal(t, len([]rune("/Mov")), offset)
+	require.Contains(t, candidates, []rune("ies/"))
+
+	candidates, offset = completer.Do([]rune("download -p /Mov"), len("download -p /Mov"))
+	require.Equal(t, len([]rune("/Mov")), offset)
+	require.Contains(t, candidates, []rune("ies/"))
+
+	candidates, offset = completer.Do([]rune("download mov"), len("download mov"))
+	require.Equal(t, len([]rune("mov")), offset)
+	require.Contains(t, candidates, []rune("ie.mp4"))
+
+	candidates, offset = completer.Do([]rune("share mov"), len("share mov"))
+	require.Equal(t, len([]rune("mov")), offset)
+	require.Contains(t, candidates, []rune("ie.mp4"))
+
+	candidates, offset = completer.Do([]rune("delete mov"), len("delete mov"))
+	require.Equal(t, len([]rune("mov")), offset)
+	require.Contains(t, candidates, []rune("ie.mp4"))
+
+	candidates, offset = completer.Do([]rune("rename mov"), len("rename mov"))
+	require.Equal(t, len([]rune("mov")), offset)
+	require.Contains(t, candidates, []rune("ie.mp4"))
+}
+
+func TestCompleterUploadLocalPath(t *testing.T) {
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "local.txt"), []byte("x"), 0644))
+	require.NoError(t, os.Mkdir(filepath.Join(tempDir, "folder"), 0755))
+
+	oldWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWD)
+	})
+
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+	uploadCmd := &cobra.Command{Use: "upload"}
+	uploadCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(uploadCmd)
+
+	completer := &shellAutoCompleter{
+		rootCmd:        rootCmd,
+		fileStatSource: fakeFileStatProvider{},
+		currentPath: func() string {
+			return "/"
+		},
+	}
+
+	candidates, offset := completer.Do([]rune("upload loc"), len("upload loc"))
+	require.Equal(t, len([]rune("loc")), offset)
+	require.Contains(t, candidates, []rune("al.txt"))
+
+	candidates, offset = completer.Do([]rune("upload fol"), len("upload fol"))
+	require.Equal(t, len([]rune("fol")), offset)
+	require.Contains(t, candidates, []rune("der/"))
+}
+
+func TestCompleterUploadHomePath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
+	tempHomeRoot := filepath.Dir(home)
+	homeName := filepath.Base(home)
+	testDirName := "codex-upload-home-test"
+	testDir := filepath.Join(home, testDirName)
+	require.NoError(t, os.MkdirAll(testDir, 0755))
+	t.Cleanup(func() {
+		_ = os.RemoveAll(testDir)
+	})
+
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+	uploadCmd := &cobra.Command{Use: "upload"}
+	uploadCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(uploadCmd)
+
+	completer := &shellAutoCompleter{
+		rootCmd:        rootCmd,
+		fileStatSource: fakeFileStatProvider{},
+		currentPath: func() string {
+			return "/"
+		},
+	}
+
+	oldWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tempHomeRoot))
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWD)
+	})
+
+	candidates, offset := completer.Do([]rune("upload ~/"+testDirName[:5]), len("upload ~/"+testDirName[:5]))
+	require.Equal(t, len([]rune("~/"+testDirName[:5])), offset)
+	require.Contains(t, candidates, []rune(testDirName[5:]+"/"))
+	require.NotEmpty(t, homeName)
+
+	candidates, offset = completer.Do([]rune("upload ~/"), len("upload ~/"))
+	require.Equal(t, len([]rune("~/")), offset)
+	require.Contains(t, candidates, []rune(testDirName+"/"))
 }
 
 func TestClearScreen(t *testing.T) {

@@ -8,6 +8,32 @@ import (
 	"strings"
 )
 
+func ExpandLocalPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return path
+	}
+
+	path = os.ExpandEnv(path)
+	if path == "~" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			return home
+		}
+		return path
+	}
+
+	prefix := "~" + string(filepath.Separator)
+	if strings.HasPrefix(path, prefix) {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			return filepath.Join(home, path[len(prefix):])
+		}
+	}
+
+	return path
+}
+
 func SplitSeparator(path string) []string {
 	if path == "" {
 		return []string{}

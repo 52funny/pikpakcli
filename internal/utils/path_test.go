@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -49,4 +50,14 @@ func TestSplitRemotePath(t *testing.T) {
 			require.Equal(t, tt.wantName, name)
 		})
 	}
+}
+
+func TestExpandLocalPath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
+	require.Equal(t, home, ExpandLocalPath("~"))
+	require.Equal(t, filepath.Join(home, "Downloads"), ExpandLocalPath("~/Downloads"))
+	require.Equal(t, filepath.Join(home, "Downloads"), ExpandLocalPath("$HOME/Downloads"))
+	require.Equal(t, "relative/path", ExpandLocalPath("relative/path"))
 }

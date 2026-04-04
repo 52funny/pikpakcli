@@ -7,12 +7,14 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/52funny/pikpakcli/internal/logx"
+	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -179,7 +181,125 @@ func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {
 		return completeFromPrefix(active, flagCandidates(cmd), true)
 	}
 
+	commandKey := canonicalCommandKey(c.rootCmd, cmd)
+	if shouldCompleteDirectoryPath(commandKey, tokens, active, endedWithSpace, consumed) {
+		return c.completeRemotePath(active, true)
+	}
+	if shouldCompleteRemoteTargetPath(commandKey, tokens, active, consumed) {
+		return c.completeRemotePath(active, false)
+	}
+	if shouldCompleteLocalTargetPath(commandKey, tokens, active, consumed) {
+		return completeLocalPath(active, false)
+	}
+
 	return nil, 0
+}
+
+func shouldCompleteDirectoryPath(commandKey string, tokens []string, active string, endedWithSpace bool, consumed int) bool {
+	if commandKey == "" {
+		return false
+	}
+
+	if wantsPathFlagValue(tokens, active, endedWithSpace) {
+		switch commandKey {
+		case "ls", "empty", "download", "share", "upload", "delete", "new folder", "new url", "new sha":
+			return true
+		}
+	}
+
+	positionalsAfterCommand := tokens[consumed:]
+	if active != "" {
+		positionalsAfterCommand = append(positionalsAfterCommand, active)
+	}
+
+	switch commandKey {
+	case "ls", "empty":
+		return len(positionalsAfterCommand) <= 1
+	}
+
+	return false
+}
+
+func shouldCompleteRemoteTargetPath(commandKey string, tokens []string, active string, consumed int) bool {
+	if commandKey == "" || active == "" {
+		return false
+	}
+
+	positionalsAfterCommand := positionalTokens(tokens[consumed:], active)
+	switch commandKey {
+	case "download", "share", "delete":
+		return len(positionalsAfterCommand) >= 1
+	case "rename":
+		return len(positionalsAfterCommand) == 1
+	default:
+		return false
+	}
+}
+
+func shouldCompleteLocalTargetPath(commandKey string, tokens []string, active string, consumed int) bool {
+	if commandKey == "" || active == "" {
+		return false
+	}
+
+	positionalsAfterCommand := positionalTokens(tokens[consumed:], active)
+	switch commandKey {
+	case "upload":
+		return len(positionalsAfterCommand) >= 1
+	default:
+		return false
+	}
+}
+
+func wantsPathFlagValue(tokens []string, active string, endedWithSpace bool) bool {
+	if len(tokens) == 0 {
+		return false
+	}
+
+	last := tokens[len(tokens)-1]
+	if endedWithSpace {
+		return last == "-p" || last == "--path"
+	}
+
+	if active != "" {
+		return last == "-p" || last == "--path"
+	}
+
+	return false
+}
+
+func positionalTokens(tokens []string, active string) []string {
+	positionals := make([]string, 0)
+	stopFlags := false
+
+	for i := 0; i < len(tokens); i++ {
+		token := tokens[i]
+		if stopFlags {
+			positionals = append(positionals, token)
+			continue
+		}
+
+		switch {
+		case token == "--":
+			stopFlags = true
+		case token == "-p" || token == "--path" ||
+			token == "-P" || token == "--parent-id" ||
+			token == "-o" || token == "--output" ||
+			token == "-i" || token == "--input" ||
+			token == "-c" || token == "--count":
+			if i+1 < len(tokens) {
+				i++
+			}
+		case strings.HasPrefix(token, "-"):
+		default:
+			positionals = append(positionals, token)
+		}
+	}
+
+	if active != "" {
+		positionals = append(positionals, active)
+	}
+
+	return positionals
 }
 
 func (c *shellAutoCompleter) completeRemotePath(prefix string, onlyDirs bool) ([][]rune, int) {
@@ -227,6 +347,51 @@ func (c *shellAutoCompleter) completeRemotePath(prefix string, onlyDirs bool) ([
 		remaining := file.Name[len(namePrefix):]
 		if file.Kind == api.FileKindFolder {
 			remaining += "/"
+		}
+		candidates = append(candidates, remaining)
+	}
+
+	return toRuneCandidates(candidates), len([]rune(basePrefix))
+}
+
+func completeLocalPath(prefix string, onlyDirs bool) ([][]rune, int) {
+	expandedPrefix := utils.ExpandLocalPath(prefix)
+	parentPath := "."
+	basePrefix := prefix
+	namePrefix := expandedPrefix
+	hasTrailingSeparator := strings.HasSuffix(prefix, string(filepath.Separator))
+
+	if strings.TrimSpace(prefix) == "" {
+		basePrefix = ""
+		namePrefix = ""
+	} else if !hasTrailingSeparator {
+		parentPath = filepath.Dir(expandedPrefix)
+		if parentPath == "." && filepath.IsAbs(expandedPrefix) {
+			parentPath = string(filepath.Separator)
+		}
+		namePrefix = filepath.Base(expandedPrefix)
+	} else {
+		parentPath = expandedPrefix
+		namePrefix = ""
+	}
+
+	entries, err := os.ReadDir(parentPath)
+	if err != nil {
+		return nil, len([]rune(basePrefix))
+	}
+
+	candidates := make([]string, 0)
+	for _, entry := range entries {
+		if onlyDirs && !entry.IsDir() {
+			continue
+		}
+		if !strings.HasPrefix(entry.Name(), namePrefix) {
+			continue
+		}
+
+		remaining := entry.Name()[len(namePrefix):]
+		if entry.IsDir() {
+			remaining += string(filepath.Separator)
 		}
 		candidates = append(candidates, remaining)
 	}

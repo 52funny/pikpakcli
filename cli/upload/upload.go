@@ -47,6 +47,7 @@ var UploadCmd = &cobra.Command{
 			}
 		}()
 		for _, v := range args {
+			v = utils.ExpandLocalPath(v)
 			stat, err := os.Stat(v)
 			if err != nil {
 				fmt.Printf("Get file %s stat failed\n", v)
