@@ -1,6 +1,8 @@
 package empty
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -38,8 +40,12 @@ var EmptyCmd = &cobra.Command{
 			return
 		}
 
-		emptyFolders, err := handleEmptyFolders(&p, path, concurrency, deleteMode)
+		emptyFolders, err := handleEmptyFolders(cmd.Context(), &p, path, concurrency, deleteMode)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				fmt.Println("Empty folder scan canceled")
+				return
+			}
 			fmt.Println("Handle empty folders failed")
 			logx.Error(err)
 			return
@@ -64,7 +70,13 @@ func init() {
 	EmptyCmd.Flags().BoolVarP(&deleteMode, "delete", "d", false, "delete the empty folders instead of only listing them")
 }
 
-func handleEmptyFolders(p emptyFolderProvider, rootPath string, concurrency int, deleteMode bool) ([]string, error) {
+func handleEmptyFolders(ctx context.Context, p emptyFolderProvider, rootPath string, concurrency int, deleteMode bool) ([]string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	rootID, err := p.GetPathFolderId(rootPath)
 	if err != nil {
 		return nil, err
@@ -77,7 +89,7 @@ func handleEmptyFolders(p emptyFolderProvider, rootPath string, concurrency int,
 	state := emptyWalkState{
 		sem: make(chan struct{}, concurrency),
 	}
-	if _, err := walkEmptyFolders(p, rootID, filepath.Clean(rootPath), filepath.Clean(rootPath) != string(filepath.Separator), deleteMode, &deleted, &state); err != nil {
+	if _, err := walkEmptyFolders(ctx, p, rootID, filepath.Clean(rootPath), filepath.Clean(rootPath) != string(filepath.Separator), deleteMode, &deleted, &state); err != nil {
 		return nil, err
 	}
 	return deleted, nil
@@ -93,7 +105,10 @@ type emptyFolderResult struct {
 	err   error
 }
 
-func walkEmptyFolders(p emptyFolderProvider, folderID, currentPath string, allowDeleteCurrent bool, deleteMode bool, deleted *[]string, state *emptyWalkState) (bool, error) {
+func walkEmptyFolders(ctx context.Context, p emptyFolderProvider, folderID, currentPath string, allowDeleteCurrent bool, deleteMode bool, deleted *[]string, state *emptyWalkState) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	files, err := p.GetFolderFileStatList(folderID)
 	if err != nil {
 		return false, err
@@ -104,6 +119,9 @@ func walkEmptyFolders(p emptyFolderProvider, folderID, currentPath string, allow
 	results := make(chan emptyFolderResult, len(files))
 	var childFolders int
 	for _, file := range files {
+		if err := ctx.Err(); err != nil {
+			return false, err
+		}
 		if file.Kind != api.FileKindFolder {
 			hasFiles = true
 			continue
@@ -112,19 +130,21 @@ func walkEmptyFolders(p emptyFolderProvider, folderID, currentPath string, allow
 
 		childPath := filepath.Join(currentPath, file.Name)
 		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
 		case state.sem <- struct{}{}:
 			go func(file api.FileStat, childPath string) {
 				defer func() {
 					<-state.sem
 				}()
-				childEmpty, err := walkEmptyFolders(p, file.ID, childPath, true, deleteMode, deleted, state)
+				childEmpty, err := walkEmptyFolders(ctx, p, file.ID, childPath, true, deleteMode, deleted, state)
 				results <- emptyFolderResult{
 					empty: childEmpty,
 					err:   err,
 				}
 			}(file, childPath)
 		default:
-			childEmpty, err := walkEmptyFolders(p, file.ID, childPath, true, deleteMode, deleted, state)
+			childEmpty, err := walkEmptyFolders(ctx, p, file.ID, childPath, true, deleteMode, deleted, state)
 			results <- emptyFolderResult{
 				empty: childEmpty,
 				err:   err,
@@ -133,12 +153,16 @@ func walkEmptyFolders(p emptyFolderProvider, folderID, currentPath string, allow
 	}
 
 	for i := 0; i < childFolders; i++ {
-		result := <-results
-		if result.err != nil {
-			return false, result.err
-		}
-		if !result.empty {
-			hasRemainingFolders = true
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case result := <-results:
+			if result.err != nil {
+				return false, result.err
+			}
+			if !result.empty {
+				hasRemainingFolders = true
+			}
 		}
 	}
 
@@ -151,6 +175,9 @@ func walkEmptyFolders(p emptyFolderProvider, folderID, currentPath string, allow
 	}
 
 	if deleteMode {
+		if err := ctx.Err(); err != nil {
+			return false, err
+		}
 		if err := p.DeleteFile(folderID); err != nil {
 			return false, err
 		}

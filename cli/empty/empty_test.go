@@ -1,10 +1,12 @@
 package empty
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +73,7 @@ func TestHandleEmptyFoldersDeletesNestedEmptyFolders(t *testing.T) {
 		},
 	}
 
-	deleted, err := handleEmptyFolders(provider, "/", 4, true)
+	deleted, err := handleEmptyFolders(context.Background(), provider, "/", 4, true)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{filepath.Clean("/Movies/Kids"), filepath.Clean("/Movies"), filepath.Clean("/Music")}, deleted)
 	assert.ElementsMatch(t, []string{"kids", "movies", "music"}, provider.deletedFiles)
@@ -89,7 +91,7 @@ func TestHandleEmptyFoldersSkipsNonEmptyRootTarget(t *testing.T) {
 		},
 	}
 
-	deleted, err := handleEmptyFolders(provider, "/Movies", 4, true)
+	deleted, err := handleEmptyFolders(context.Background(), provider, "/Movies", 4, true)
 	require.NoError(t, err)
 	assert.Empty(t, deleted)
 	assert.Empty(t, provider.deletedFiles)
@@ -108,7 +110,7 @@ func TestHandleEmptyFoldersDeletesTargetWhenItBecomesEmpty(t *testing.T) {
 		},
 	}
 
-	deleted, err := handleEmptyFolders(provider, "/Movies", 4, true)
+	deleted, err := handleEmptyFolders(context.Background(), provider, "/Movies", 4, true)
 	require.NoError(t, err)
 	assert.Equal(t, []string{filepath.Clean("/Movies/Kids"), filepath.Clean("/Movies")}, deleted)
 	assert.Equal(t, []string{"kids", "movies"}, provider.deletedFiles)
@@ -124,7 +126,7 @@ func TestHandleEmptyFoldersNormalizesInvalidConcurrency(t *testing.T) {
 		},
 	}
 
-	deleted, err := handleEmptyFolders(provider, "/Movies", 0, true)
+	deleted, err := handleEmptyFolders(context.Background(), provider, "/Movies", 0, true)
 	require.NoError(t, err)
 	assert.Equal(t, []string{filepath.Clean("/Movies")}, deleted)
 	assert.Equal(t, []string{"movies"}, provider.deletedFiles)
@@ -143,8 +145,73 @@ func TestHandleEmptyFoldersListsWithoutDeleting(t *testing.T) {
 		},
 	}
 
-	emptyFolders, err := handleEmptyFolders(provider, "/", 4, false)
+	emptyFolders, err := handleEmptyFolders(context.Background(), provider, "/", 4, false)
 	require.NoError(t, err)
 	assert.Equal(t, []string{filepath.Clean("/Movies")}, emptyFolders)
 	assert.Empty(t, provider.deletedFiles)
+}
+
+type blockingEmptyFolderProvider struct {
+	fakeEmptyFolderProvider
+	block chan struct{}
+}
+
+func (f *blockingEmptyFolderProvider) GetFolderFileStatList(parentId string) ([]api.FileStat, error) {
+	if parentId == "slow" {
+		<-f.block
+	}
+	return f.fakeEmptyFolderProvider.GetFolderFileStatList(parentId)
+}
+
+func TestHandleEmptyFoldersHonorsCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	provider := &fakeEmptyFolderProvider{
+		pathToID: map[string]string{
+			filepath.Clean("/"): "root",
+		},
+		folders: map[string][]api.FileStat{
+			"root": {},
+		},
+	}
+
+	deleted, err := handleEmptyFolders(ctx, provider, "/", 4, false)
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, deleted)
+}
+
+func TestHandleEmptyFoldersStopsWaitingAfterCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	provider := &blockingEmptyFolderProvider{
+		fakeEmptyFolderProvider: fakeEmptyFolderProvider{
+			pathToID: map[string]string{
+				filepath.Clean("/"): "root",
+			},
+			folders: map[string][]api.FileStat{
+				"root": {
+					{ID: "slow", Name: "slow", Kind: api.FileKindFolder},
+				},
+				"slow": {},
+			},
+		},
+		block: make(chan struct{}),
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := handleEmptyFolders(ctx, provider, "/", 4, false)
+		done <- err
+	}()
+
+	cancel()
+
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("handleEmptyFolders did not stop promptly after cancellation")
+	}
+
+	close(provider.block)
 }
