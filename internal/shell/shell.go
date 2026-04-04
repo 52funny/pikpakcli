@@ -359,7 +359,7 @@ func (c *shellAutoCompleter) completeRemotePath(prefix string, onlyDirs bool) ([
 		if file.Kind == api.FileKindFolder {
 			remaining += "/"
 		}
-		candidates = append(candidates, remaining)
+		candidates = append(candidates, escapeShellCompletion(remaining))
 	}
 
 	return toRuneCandidates(candidates), len([]rune(basePrefix))
@@ -404,7 +404,7 @@ func completeLocalPath(prefix string, onlyDirs bool) ([][]rune, int) {
 		if entry.IsDir() {
 			remaining += string(filepath.Separator)
 		}
-		candidates = append(candidates, remaining)
+		candidates = append(candidates, escapeShellCompletion(remaining))
 	}
 
 	return toRuneCandidates(candidates), len([]rune(basePrefix))
@@ -599,11 +599,26 @@ func splitCompletionLine(input string) ([]string, string, bool) {
 	inDoubleQuote := false
 	inSingleQuote := false
 	endedWithSpace := false
+	escaped := false
 
 	for i := 0; i < len(input); i++ {
 		ch := input[i]
 
+		if escaped {
+			current.WriteByte(ch)
+			escaped = false
+			endedWithSpace = false
+			continue
+		}
+
 		switch ch {
+		case '\\':
+			if inSingleQuote {
+				current.WriteByte(ch)
+			} else {
+				escaped = true
+			}
+			endedWithSpace = false
 		case '"':
 			endedWithSpace = false
 			if inSingleQuote {
@@ -734,11 +749,24 @@ func parseShellArgs(input string) []string {
 	var current strings.Builder
 	inDoubleQuote := false
 	inSingleQuote := false
+	escaped := false
 
 	for i := 0; i < len(input); i++ {
 		ch := input[i]
 
+		if escaped {
+			current.WriteByte(ch)
+			escaped = false
+			continue
+		}
+
 		switch ch {
+		case '\\':
+			if inSingleQuote {
+				current.WriteByte(ch)
+			} else {
+				escaped = true
+			}
 		case '"':
 			if inSingleQuote {
 				current.WriteByte(ch)
@@ -767,6 +795,19 @@ func parseShellArgs(input string) []string {
 		args = append(args, current.String())
 	}
 	return args
+}
+
+func escapeShellCompletion(value string) string {
+	var escaped strings.Builder
+	escaped.Grow(len(value))
+	for i := 0; i < len(value); i++ {
+		switch value[i] {
+		case ' ', '\\', '"', '\'':
+			escaped.WriteByte('\\')
+		}
+		escaped.WriteByte(value[i])
+	}
+	return escaped.String()
 }
 
 // resetFlags recursively resets all flags in the command tree to their default values

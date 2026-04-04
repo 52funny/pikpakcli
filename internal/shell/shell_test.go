@@ -38,6 +38,11 @@ func TestParseShellArgs(t *testing.T) {
 			input: "cd '/Movies/Kids Cartoons'",
 			want:  []string{"cd", "/Movies/Kids Cartoons"},
 		},
+		{
+			name:  "escaped spaces",
+			input: `cd /My\ Pack/Kids\ Cartoons`,
+			want:  []string{"cd", "/My Pack/Kids Cartoons"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -125,6 +130,12 @@ func TestSplitCompletionLine(t *testing.T) {
 			input:  `cd "/Movies/Kids Cartoons`,
 			tokens: []string{"cd"},
 			active: "/Movies/Kids Cartoons",
+		},
+		{
+			name:   "escaped spaces",
+			input:  `cd /My\ Pack/Kids\ Cart`,
+			tokens: []string{"cd"},
+			active: "/My Pack/Kids Cart",
 		},
 	}
 
@@ -460,7 +471,27 @@ func TestCompleterCDPathFromCurrentDirectory(t *testing.T) {
 
 	candidates, offset := completer.Do([]rune("cd Ki"), len("cd Ki"))
 	require.Equal(t, len([]rune("Ki")), offset)
-	require.Contains(t, candidates, []rune("ds Cartoons/"))
+	require.Contains(t, candidates, []rune(`ds\ Cartoons/`))
+}
+
+func TestCompleterEscapesSpacesInPath(t *testing.T) {
+	completer := &shellAutoCompleter{
+		rootCmd: &cobra.Command{Use: "pikpakcli"},
+		fileStatSource: fakeFileStatProvider{
+			folders: map[string][]api.FileStat{
+				"": {
+					{Name: "My Pack", Kind: api.FileKindFolder},
+				},
+			},
+		},
+		currentPath: func() string {
+			return "/"
+		},
+	}
+
+	candidates, offset := completer.Do([]rune("cd /My"), len("cd /My"))
+	require.Equal(t, len([]rune("/My")), offset)
+	require.Contains(t, candidates, []rune(`\ Pack/`))
 }
 
 type fakeFileStatProvider struct {
