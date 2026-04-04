@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -9,8 +10,8 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -23,11 +24,15 @@ var UploadCmd = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Error(err)
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return
 		}
 		err = p.AuthCaptchaToken("POST:/drive/v1/files")
 		if err != nil {
-			logrus.Error(err)
+			fmt.Println("Auth captcha token failed")
+			logx.Error(err)
+			return
 		}
 
 		go func() {
@@ -36,7 +41,7 @@ var UploadCmd = &cobra.Command{
 			for range ticker.C {
 				err := p.RefreshToken()
 				if err != nil {
-					logrus.Warn(err)
+					logx.Warn("session", "refresh token failed:", err)
 					continue
 				}
 			}
@@ -44,7 +49,8 @@ var UploadCmd = &cobra.Command{
 		for _, v := range args {
 			stat, err := os.Stat(v)
 			if err != nil {
-				logrus.Errorf("Get file %s stat failed: %s", v, err)
+				fmt.Printf("Get file %s stat failed\n", v)
+				logx.Error(err)
 				continue
 			}
 			if stat.IsDir() {
@@ -97,16 +103,18 @@ func handleUploadFile(p *api.PikPak, path string) {
 	if parentId == "" {
 		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
 		if err != nil {
-			logrus.Errorf("Get folder %s id failed: %s", uploadFolder, err)
+			fmt.Printf("Get folder %s id failed\n", uploadFolder)
+			logx.Error(err)
 			return
 		}
 	}
 	err = p.UploadFile(parentId, path)
 	if err != nil {
-		logrus.Errorf("Upload file %s failed: %s\n", path, err)
+		fmt.Printf("Upload file %s failed\n", path)
+		logx.Error(err)
 		return
 	}
-	logrus.Infof("Upload file %s success!\n", path)
+	fmt.Printf("Upload file %s success!\n", path)
 }
 
 // upload files logic
@@ -114,37 +122,41 @@ func handleUploadFolder(p *api.PikPak, path string) {
 	basePath := filepath.Base(filepath.ToSlash(path))
 	uploadFilePath, err := utils.GetUploadFilePath(path, defaultExcludeRegexp)
 	if err != nil {
-		logrus.Errorln(err)
+		fmt.Println("Get upload file path failed")
+		logx.Error(err)
 		return
 	}
 
 	syncTxt, err := utils.NewSyncTxt(".pikpaksync.txt", sync)
 	if err != nil {
-		logrus.Errorln(err)
+		fmt.Println("Init sync file failed")
+		logx.Error(err)
 		return
 	}
 	defer syncTxt.Close()
 
 	uploadFilePath = syncTxt.UnSync(uploadFilePath)
 
-	logrus.Info("upload file list:")
+	fmt.Println("upload file list:")
 	for _, f := range uploadFilePath {
-		logrus.Infoln(filepath.Join(basePath, f))
+		fmt.Println(filepath.Join(basePath, f))
 	}
 
 	if parentId == "" {
 		parentId, err = p.GetDeepFolderOrCreateId("", uploadFolder)
 		if err != nil {
-			logrus.Errorf("get folder %s id error: %s", uploadFolder, err)
+			fmt.Printf("Get folder %s id error\n", uploadFolder)
+			logx.Error(err)
 			return
 		}
 	}
 
-	logrus.Debug("upload folder: ", uploadFolder, " parentId: ", parentId)
+	logx.Debug("upload", "upload folder: ", uploadFolder, " parentId: ", parentId)
 
 	parentId, err = p.GetDeepFolderOrCreateId(parentId, basePath)
 	if err != nil {
-		logrus.Errorf("get base_upload_path %s id error: %s", basePath, err)
+		fmt.Printf("Get base_upload_path %s id error\n", basePath)
+		logx.Error(err)
 		return
 	}
 	parentIdMap := make(map[string]string)
@@ -157,7 +169,8 @@ func handleUploadFolder(p *api.PikPak, path string) {
 			if mId, ok := parentIdMap[base]; !ok {
 				id, err = p.GetDeepFolderOrCreateId(parentId, base)
 				if err != nil {
-					logrus.Error(err)
+					fmt.Println("Get folder id failed")
+					logx.Error(err)
 				}
 				parentIdMap[base] = id
 			} else {
@@ -166,14 +179,16 @@ func handleUploadFolder(p *api.PikPak, path string) {
 
 			err = p.UploadFile(id, filepath.Join(path, v))
 			if err != nil {
-				logrus.Error(err)
+				fmt.Printf("%s upload failed\n", v)
+				logx.Error(err)
 			}
 			syncTxt.WriteString(v + "\n")
-			logrus.Infof("%s upload success!\n", v)
+			fmt.Printf("%s upload success!\n", v)
 		} else {
 			err = p.UploadFile(parentId, filepath.Join(path, v))
 			if err != nil {
-				logrus.Error(err)
+				fmt.Printf("%s upload failed\n", v)
+				logx.Error(err)
 			}
 			syncTxt.WriteString(v + "\n")
 		}

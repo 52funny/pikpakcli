@@ -13,8 +13,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
@@ -148,7 +148,7 @@ func (p *PikPak) getFolderFileStatPage(query url.Values) ([]byte, error) {
 		if !isRetryableListError(err) || attempt == maxListRetries-1 {
 			break
 		}
-		logrus.Warnf("List folder interrupted, retrying (%d/%d): %v", attempt+1, maxListRetries-1, err)
+		logx.Warnf("transfer", "List folder interrupted, retrying (%d/%d): %v", attempt+1, maxListRetries-1, err)
 		time.Sleep(time.Duration(attempt+1) * 200 * time.Millisecond)
 	}
 	return nil, lastErr

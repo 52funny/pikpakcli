@@ -7,7 +7,7 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/spf13/cobra"
 )
 
@@ -19,14 +19,17 @@ var ShareCommand = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return
 		}
 		// Output file handle
 		var f = os.Stdout
 		if strings.TrimSpace(output) != "" {
 			file, err := os.Create(output)
 			if err != nil {
-				logrus.Errorln("Create file failed:", err)
+				fmt.Println("Create file failed")
+				logx.Error(err)
 				return
 			}
 			defer file.Close()
@@ -63,13 +66,15 @@ func shareFolder(p *api.PikPak, f *os.File) {
 	if parentId == "" {
 		parentId, err = p.GetDeepFolderId("", folder)
 		if err != nil {
-			logrus.Errorln("Get parent id failed:", err)
+			fmt.Println("Get parent id failed")
+			logx.Error(err)
 			return
 		}
 	}
 	fileStat, err := p.GetFolderFileStatList(parentId)
 	if err != nil {
-		logrus.Errorln("Get folder file stat list failed:", err)
+		fmt.Println("Get folder file stat list failed")
+		logx.Error(err)
 		return
 	}
 	for _, stat := range fileStat {
@@ -86,14 +91,16 @@ func shareFiles(p *api.PikPak, args []string, f *os.File) {
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(folder)
 		if err != nil {
-			logrus.Errorln("get parent id failed:", err)
+			fmt.Println("Get parent id failed")
+			logx.Error(err)
 			return
 		}
 	}
 	for _, path := range args {
 		stat, err := p.GetFileStat(parentId, path)
 		if err != nil {
-			logrus.Errorln(path, "get file stat error:", err)
+			fmt.Println(path, "get file stat error")
+			logx.Error(err)
 			continue
 		}
 		fmt.Fprintf(f, "PikPak://%s|%s|%s\n", stat.Name, stat.Size, stat.Hash)

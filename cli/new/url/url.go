@@ -9,7 +9,7 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,9 @@ var NewUrlCommand = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return
 		}
 		if cli {
 			handleCli(&p)
@@ -30,7 +32,8 @@ var NewUrlCommand = &cobra.Command{
 		if strings.TrimSpace(input) != "" {
 			f, err := os.OpenFile(input, os.O_RDONLY, 0666)
 			if err != nil {
-				logrus.Errorf("Open file %s failed: %s", input, err)
+				fmt.Printf("Open file %s failed\n", input)
+				logx.Error(err)
 				return
 			}
 			reader := bufio.NewReader(f)
@@ -50,7 +53,7 @@ var NewUrlCommand = &cobra.Command{
 		if len(args) > 0 {
 			handleNewUrl(&p, args)
 		} else {
-			logrus.Errorln("Please input the folder name")
+			fmt.Println("Please input the folder name")
 		}
 	},
 }
@@ -76,17 +79,19 @@ func handleNewUrl(p *api.PikPak, shas []string) {
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
+			fmt.Println("Get parent id failed")
+			logx.Error(err)
 			return
 		}
 	}
 	for _, url := range shas {
 		err := p.CreateUrlFile(parentId, url)
 		if err != nil {
-			logrus.Errorln("Create url file failed: ", err)
+			fmt.Println("Create url file failed")
+			logx.Error(err)
 			continue
 		}
-		logrus.Infoln("Create url file success: ", url)
+		fmt.Println("Create url file success:", url)
 	}
 }
 
@@ -95,7 +100,8 @@ func handleCli(p *api.PikPak) {
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
+			fmt.Println("Get parent id failed")
+			logx.Error(err)
 			return
 		}
 	}
@@ -110,9 +116,10 @@ func handleCli(p *api.PikPak) {
 		url := string(lineBytes)
 		err = p.CreateUrlFile(parentId, url)
 		if err != nil {
-			logrus.Errorln("Create url file failed: ", err)
+			fmt.Println("Create url file failed")
+			logx.Error(err)
 			continue
 		}
-		logrus.Infoln("Create url file success: ", url)
+		fmt.Println("Create url file success:", url)
 	}
 }

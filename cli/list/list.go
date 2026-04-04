@@ -5,9 +5,9 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
 	"github.com/fatih/color"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,9 @@ var ListCmd = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return
 		}
 		long, _ := cmd.Flags().GetBool("long")
 		human, _ := cmd.Flags().GetBool("human")
@@ -48,13 +50,15 @@ func handle(p *api.PikPak, args []string, long, human bool, path, parentId strin
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {
-			logrus.Errorln("get path folder id error:", err)
+			fmt.Println("Get path folder id error")
+			logx.Error(err)
 			return
 		}
 	}
 	files, err := p.GetFolderFileStatList(parentId)
 	if err != nil {
-		logrus.Errorln("get folder file stat list error:", err)
+		fmt.Println("Get folder file stat list error")
+		logx.Error(err)
 		return
 	}
 	for _, file := range files {

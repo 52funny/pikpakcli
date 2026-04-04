@@ -1,6 +1,7 @@
 package download
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -8,8 +9,8 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/vbauerster/mpb/v8"
 	"github.com/vbauerster/mpb/v8/decor"
@@ -23,7 +24,9 @@ var DownloadCmd = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return
 		}
 		handleDownload(&p, args)
 	},
@@ -80,7 +83,8 @@ type downloadTargetResolver interface {
 
 func handleDownload(p *api.PikPak, args []string) {
 	if err := utils.CreateDirIfNotExist(output); err != nil {
-		logrus.Errorln("Create output directory failed:", err)
+		fmt.Println("Create output directory failed")
+		logx.Error(err)
 		return
 	}
 
@@ -98,7 +102,8 @@ func downloadTarget(p *api.PikPak, arg string) {
 	stat, err := resolveDownloadTarget(p, arg)
 	if err != nil {
 		target := remoteTargetPath(arg)
-		logrus.Errorln("Resolve download target failed:", target, err)
+		fmt.Println("Resolve download target failed:", target)
+		logx.Error(err)
 		return
 	}
 
@@ -141,7 +146,8 @@ func downloadStats(p *api.PikPak, collectStat []warpStat) {
 				}
 				file, err := p.GetFile(stat.s.ID)
 				if err != nil {
-					logrus.Errorln("Get File Failed:", err)
+					fmt.Println("Get file failed")
+					logx.Error(err)
 				}
 				fileCh <- warpFile{
 					f:      &file,
@@ -157,7 +163,8 @@ func downloadStats(p *api.PikPak, collectStat []warpStat) {
 	for i := 0; i < len(collectStat); i += 1 {
 		err := utils.CreateDirIfNotExist(collectStat[i].output)
 		if err != nil {
-			logrus.Errorln("Create output directory failed:", err)
+			fmt.Println("Create output directory failed")
+			logx.Error(err)
 			return
 		}
 		statCh <- collectStat[i]
@@ -180,7 +187,8 @@ func downloadStats(p *api.PikPak, collectStat []warpStat) {
 func recursive(p *api.PikPak, collectWarpFile *[]warpStat, parentId string, parentPath string) {
 	statList, err := p.GetFolderFileStatList(parentId)
 	if err != nil {
-		logrus.Errorln("Get Folder File Stat List Failed:", err)
+		fmt.Println("Get folder file stat list failed")
+		logx.Error(err)
 		return
 	}
 	for _, r := range statList {
@@ -283,7 +291,8 @@ func localOutputRoot(name string) string {
 func mustGetFile(p *api.PikPak, stat api.FileStat) *api.File {
 	file, err := p.GetFile(stat.ID)
 	if err != nil {
-		logrus.Errorln("Get File Failed:", err)
+		fmt.Println("Get file failed")
+		logx.Error(err)
 		return &api.File{FileStat: stat}
 	}
 	return &file
@@ -373,7 +382,7 @@ func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
 		// if hasn't error then remove flag file
 		if err == nil {
 			if pb == nil {
-				logrus.Infoln("Download", warp.f.Name, "Success")
+				fmt.Println("Download", warp.f.Name, "Success")
 			}
 			os.Remove(flag)
 			if bar != nil {
@@ -381,7 +390,8 @@ func download(inCh <-chan warpFile, out chan<- struct{}, pb *mpb.Progress) {
 			}
 		} else {
 			if pb == nil {
-				logrus.Errorln("Download", warp.f.Name, "Failed:", err)
+				fmt.Println("Download failed:", warp.f.Name)
+				logx.Error(err)
 			}
 			if bar != nil {
 				bar.Abort(false)

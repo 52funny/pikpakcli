@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 )
 
 func (p *PikPak) CreateUrlFile(parentId, url string) error {
@@ -53,7 +53,7 @@ START:
 	}
 
 	task := jsoniter.Get(bs, "task")
-	logrus.Debug(task.ToString())
+	logx.Debug("api", task.ToString())
 	// phase := task.Get("phase").ToString()
 	// if phase == "PHASE_TYPE_COMPLETE" {
 	// 	return nil

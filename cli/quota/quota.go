@@ -5,8 +5,8 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -19,12 +19,14 @@ var QuotaCmd = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
 			return
 		}
 		q, err := p.GetQuota()
 		if err != nil {
-			logrus.Errorln("get cloud quota error:", err)
+			fmt.Println("Get cloud quota error")
+			logx.Error(err)
 			return
 		}
 		fmt.Println("Storage:")
@@ -39,7 +41,8 @@ var QuotaCmd = &cobra.Command{
 
 		transfer, err := p.GetTransferQuota()
 		if err != nil {
-			logrus.Errorln("get transfer quota error:", err)
+			fmt.Println("Get transfer quota error")
+			logx.Error(err)
 			return
 		}
 		displayMonthlyTransferQuota(transfer.Base)

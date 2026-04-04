@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
@@ -93,13 +93,13 @@ func (p *PikPak) GetDeepFolderOrCreateId(parentId string, dirPath string) (strin
 	for _, dir := range dirS {
 		id, err := p.GetFolderId(parentId, dir)
 		if err != nil {
-			logrus.Warn("dir ", err)
+			logx.Warn("api", "dir ", err)
 			if err == ErrNotFoundFolder {
 				createId, err := p.CreateFolder(parentId, dir)
 				if err != nil {
 					return "", err
 				} else {
-					logrus.Info("create dir: ", dir)
+					logx.Debug("api", "create dir: ", dir)
 					parentId = createId
 				}
 			} else {

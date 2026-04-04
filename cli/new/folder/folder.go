@@ -1,9 +1,11 @@
 package folder
 
 import (
+	"fmt"
+
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/spf13/cobra"
 )
 
@@ -14,12 +16,14 @@ var NewFolderCommand = &cobra.Command{
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
-			logrus.Errorln("Login Failed:", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return
 		}
 		if len(args) > 0 {
 			handleNewFolder(&p, args)
 		} else {
-			logrus.Errorln("Please input the folder name")
+			fmt.Println("Please input the folder name")
 		}
 	},
 }
@@ -38,7 +42,8 @@ func handleNewFolder(p *api.PikPak, folders []string) {
 	if parentId == "" {
 		parentId, err = p.GetPathFolderId(path)
 		if err != nil {
-			logrus.Errorf("Get parent id failed: %s\n", err)
+			fmt.Println("Get parent id failed")
+			logx.Error(err)
 			return
 		}
 	}
@@ -46,9 +51,10 @@ func handleNewFolder(p *api.PikPak, folders []string) {
 	for _, folder := range folders {
 		_, err := p.CreateFolder(parentId, folder)
 		if err != nil {
-			logrus.Errorf("Create folder %s failed: %s\n", folder, err)
+			fmt.Printf("Create folder %s failed\n", folder)
+			logx.Error(err)
 		} else {
-			logrus.Infof("Create folder %s success\n", folder)
+			fmt.Printf("Create folder %s success\n", folder)
 		}
 	}
 }

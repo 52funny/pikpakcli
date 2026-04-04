@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/vbauerster/mpb/v8"
 )
 
@@ -68,7 +68,7 @@ func (f *File) Download(path string, bar *mpb.Bar) error {
 		if attempt == maxDownloadRetries-1 {
 			break
 		}
-		logrus.Warnf("Download %s interrupted, retrying (%d/%d): %v", f.Name, attempt+1, maxDownloadRetries-1, lastErr)
+		logx.Warnf("transfer", "Download %s interrupted, retrying (%d/%d): %v", f.Name, attempt+1, maxDownloadRetries-1, lastErr)
 	}
 
 	return lastErr
@@ -132,7 +132,7 @@ func (f *File) download(path string, bar *mpb.Bar, expectedSize int64) error {
 		}
 		return retryableDownload(errRestartDownload)
 	case offset > 0 && resp.StatusCode == http.StatusOK:
-		logrus.Warnf("Resume file %s failed: server ignored range request, restarting from the beginning", f.Name)
+		logx.Warnf("transfer", "Resume file %s failed: server ignored range request, restarting from the beginning", f.Name)
 		if err := outFile.Truncate(0); err != nil {
 			return err
 		}

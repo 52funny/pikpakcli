@@ -1,12 +1,13 @@
 package empty
 
 import (
+	"fmt"
 	"path/filepath"
 	"sync"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/spf13/cobra"
 )
 
@@ -32,25 +33,27 @@ var EmptyCmd = &cobra.Command{
 
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
-			logrus.Errorf("Login failed: %v", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
 			return
 		}
 
 		emptyFolders, err := handleEmptyFolders(&p, path, concurrency, deleteMode)
 		if err != nil {
-			logrus.Error(err)
+			fmt.Println("Handle empty folders failed")
+			logx.Error(err)
 			return
 		}
 		if len(emptyFolders) == 0 {
-			logrus.Infof("No empty folders found under %s", path)
+			fmt.Printf("No empty folders found under %s\n", path)
 			return
 		}
 		for _, folder := range emptyFolders {
 			if deleteMode {
-				logrus.Infof("Deleted empty folder: %s", folder)
+				fmt.Printf("Deleted empty folder: %s\n", folder)
 				continue
 			}
-			logrus.Infof("Empty folder: %s", folder)
+			fmt.Printf("Empty folder: %s\n", folder)
 		}
 	},
 }

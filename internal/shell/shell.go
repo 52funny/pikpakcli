@@ -12,6 +12,7 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -40,7 +41,8 @@ func Start(rootCmd *cobra.Command) {
 
 	p := api.NewPikPak(conf.Config.Username, conf.Config.Password)
 	if err := p.Login(); err != nil {
-		fmt.Fprintf(os.Stderr, "Login failed: %v\n", err)
+		fmt.Println("Login failed")
+		logx.Error(err)
 		return
 	}
 
@@ -55,7 +57,8 @@ func Start(rootCmd *cobra.Command) {
 		},
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error initializing readline: %v\n", err)
+		fmt.Println("Initialize readline failed")
+		logx.Error(err)
 		return
 	}
 	defer l.Close()
@@ -101,7 +104,8 @@ func Start(rootCmd *cobra.Command) {
 		if args[0] == "cd" {
 			nextPath, err := changeDirectory(&p, currentPath, args[1:])
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Println("Change directory failed")
+				logx.Error(err)
 				continue
 			}
 			currentPath = nextPath
@@ -116,9 +120,7 @@ func Start(rootCmd *cobra.Command) {
 		cmdCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		setCommandContextTree(rootCmd, cmdCtx)
 		rootCmd.SetArgs(args)
-		if err := rootCmd.Execute(); err != nil && cmdCtx.Err() == nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		}
+		rootCmd.Execute()
 		stop()
 		setCommandContextTree(rootCmd, context.Background())
 		rootCmd.SetArgs([]string{})

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 
 	del "github.com/52funny/pikpakcli/cli/del"
@@ -13,7 +14,7 @@ import (
 	"github.com/52funny/pikpakcli/cli/share"
 	"github.com/52funny/pikpakcli/cli/upload"
 	"github.com/52funny/pikpakcli/conf"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/spf13/cobra"
 )
 
@@ -26,12 +27,11 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		err := conf.InitConfig(configPath)
 		if err != nil {
-			logrus.Errorln(err)
+			fmt.Println("Init config failed")
+			logx.Error(err)
 			os.Exit(1)
 		}
-		if debug {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
+		logx.Init(debug, debugTopics)
 	},
 }
 
@@ -40,10 +40,12 @@ var configPath string
 
 // Debug mode
 var debug bool
+var debugTopics []string
 
 // Initialize the command line interface
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "debug mode")
+	rootCmd.PersistentFlags().StringSliceVar(&debugTopics, "debug-topic", nil, "enable debug topics: api,session,transfer")
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", "config.yml", "config file path")
 	rootCmd.AddCommand(upload.UploadCmd)
 	rootCmd.AddCommand(download.DownloadCmd)
@@ -60,7 +62,6 @@ func init() {
 // Execute the command line interface
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		logrus.Errorln(err)
 		os.Exit(1)
 	}
 }

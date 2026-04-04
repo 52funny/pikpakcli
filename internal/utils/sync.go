@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 )
 
 var ErrSyncTxtNotEnable = errors.New("sync txt is not enable")
@@ -30,7 +30,7 @@ func NewSyncTxt(fileName string, enable bool) (sync *SyncTxt, err error) {
 		}
 		bs, err := io.ReadAll(f)
 		if err != nil {
-			logrus.Error("read file error: ", err)
+			logx.Warn("sync", "read file error: ", err)
 			os.Exit(1)
 		}
 		// avoid end with "\n"

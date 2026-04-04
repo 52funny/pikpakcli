@@ -5,8 +5,8 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,14 +20,16 @@ var DeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
-			logrus.Errorf("Login failed: %v", err)
+			fmt.Println("Login failed")
+			logx.Error(err)
 			return
 		}
 
 		flagPathSpecified := cmd.Flags().Changed("path")
 		for parentPath, names := range groupDeleteTargets(args, flagPathSpecified) {
 			if err := deleteEntries(&p, parentPath, names); err != nil {
-				logrus.Error(err)
+				fmt.Println("Delete entries failed")
+				logx.Error(err)
 			}
 		}
 	},
@@ -80,16 +82,17 @@ func deleteEntries(p *api.PikPak, parentPath string, names []string) error {
 	for _, name := range names {
 		file, ok := fileIndex[name]
 		if !ok {
-			logrus.Errorf("Entry not found in %s: %s", parentPath, name)
+			fmt.Printf("Entry not found in %s: %s\n", parentPath, name)
 			continue
 		}
 
 		if err := p.DeleteFile(file.ID); err != nil {
-			logrus.Errorf("Delete %s from %s failed: %v", name, parentPath, err)
+			fmt.Printf("Delete %s from %s failed\n", name, parentPath)
+			logx.Error(err)
 			continue
 		}
 
-		logrus.Infof("Deleted %s from %s", name, parentPath)
+		fmt.Printf("Deleted %s from %s\n", name, parentPath)
 	}
 
 	return nil

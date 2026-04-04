@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
@@ -42,6 +42,6 @@ func (p *PikPak) RefreshToken() error {
 	p.JwtToken = gjson.GetBytes(bs, "access_token").String()
 	p.refreshToken = gjson.GetBytes(bs, "refresh_token").String()
 	p.RefreshSecond = gjson.GetBytes(bs, "expires_in").Int()
-	logrus.Debugln("refresh token succeeded")
+	logx.Debugln("session", "refresh token succeeded")
 	return nil
 }

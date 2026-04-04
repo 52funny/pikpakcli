@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakcli/internal/utils"
-	"github.com/sirupsen/logrus"
 )
 
 const sessionExpirySkew = 5 * 60
@@ -48,7 +48,7 @@ func (p *PikPak) saveSession() error {
 	if err = os.WriteFile(path, bs, 0600); err != nil {
 		return fmt.Errorf("write session file error: %w", err)
 	}
-	logrus.Debugln("session saved to", path)
+	logx.Debugln("session", "session saved to", path)
 	return nil
 }
 
@@ -71,7 +71,7 @@ func (p *PikPak) loadSession() error {
 	p.refreshToken = data.RefreshToken
 	p.Sub = data.Sub
 	p.RefreshSecond = data.ExpiresAt - time.Now().Unix()
-	logrus.Debugln("session loaded from", path)
+	logx.Debugln("session", "session loaded from", path)
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (p *PikPak) isTokenExpired() bool {
 
 func (p *PikPak) saveSessionBestEffort() {
 	if err := p.saveSession(); err != nil {
-		logrus.Warnln("save session failed:", err)
+		logx.Warn("session", "save session failed:", err)
 	}
 }
 

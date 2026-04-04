@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 )
 
 const package_name = `com.pikcloud.pikpak`
@@ -24,7 +24,7 @@ var md5Arr []md5Obj
 func init() {
 	err := jsoniter.Unmarshal([]byte(md5_obj), &md5Arr)
 	if err != nil {
-		logrus.Warn(err)
+		logx.Warn("api", err)
 	}
 }
 

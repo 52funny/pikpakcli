@@ -7,7 +7,7 @@ import (
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
-	"github.com/sirupsen/logrus"
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +20,9 @@ Example: pikpakcli rename /my-folder/old-name.txt new-name.txt`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		if err := p.Login(); err != nil {
-			logrus.Errorln("Login failed:", err)
-			return err
+			fmt.Println("Login failed")
+			logx.Error(err)
+			return nil
 		}
 
 		oldPath := args[0]
@@ -35,13 +36,15 @@ Example: pikpakcli rename /my-folder/old-name.txt new-name.txt`,
 
 		fileStat, err := p.GetFileByPath(oldPath)
 		if err != nil {
-			logrus.Errorf("Could not find file or folder at path '%s': %v", oldPath, err)
-			return err
+			fmt.Printf("Could not find file or folder at path '%s'\n", oldPath)
+			logx.Error(err)
+			return nil
 		}
 
 		if err := p.Rename(fileStat.ID, newName); err != nil {
-			logrus.Errorf("Failed to rename %s: %v", oldPath, err)
-			return err
+			fmt.Printf("Failed to rename %s\n", oldPath)
+			logx.Error(err)
+			return nil
 		}
 
 		fmt.Printf("Successfully renamed '%s' to '%s'\n", oldPath, newName)

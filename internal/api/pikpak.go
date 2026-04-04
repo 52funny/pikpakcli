@@ -11,8 +11,8 @@ import (
 	"net/url"
 
 	"github.com/52funny/pikpakcli/conf"
+	"github.com/52funny/pikpakcli/internal/logx"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 )
 
 const userAgent = `ANDROID-com.pikcloud.pikpak/1.21.0`
@@ -48,7 +48,7 @@ func NewPikPakWithContext(ctx context.Context, account, password string) PikPak 
 	if conf.Config.UseProxy() {
 		proxyUrl, err := url.Parse(conf.Config.Proxy)
 		if err != nil {
-			logrus.Errorln("url parse proxy error", err)
+			logx.Warn("api", "url parse proxy error", err)
 		}
 		p := http.ProxyURL(proxyUrl)
 		client.Transport = &http.Transport{
@@ -174,17 +174,17 @@ func (p *PikPak) setHeader(req *http.Request) {
 func (p *PikPak) Login() error {
 	if err := p.loadSession(); err == nil {
 		if !p.isTokenExpired() {
-			logrus.Debugln("session valid, skip login")
+			logx.Debugln("session", "session valid, skip login")
 			return nil
 		}
-		logrus.Debugln("access_token expired, trying refresh_token")
+		logx.Debugln("session", "access_token expired, trying refresh_token")
 		if err = p.RefreshToken(); err == nil {
 			p.saveSessionBestEffort()
 			return nil
 		}
-		logrus.Debugln("refresh failed, fallback to full login:", err)
+		logx.Debugln("session", "refresh failed, fallback to full login:", err)
 	} else {
-		logrus.Debugln("load session failed, fallback to full login:", err)
+		logx.Debugln("session", "load session failed, fallback to full login:", err)
 	}
 	if err := p.login(); err != nil {
 		return err

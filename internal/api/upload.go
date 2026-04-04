@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/52funny/pikpakcli/internal/logx"
 	"github.com/52funny/pikpakhash"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 )
 
 type OssArgs struct {
@@ -106,11 +106,11 @@ START:
 	// logrus.Debug(string(bs))
 	file := jsoniter.Get(bs, "file")
 	phase := file.Get("phase").ToString()
-	logrus.Debug("path: ", path, " phase: ", phase)
+	logx.Debug("upload", "path: ", path, " phase: ", phase)
 
 	switch phase {
 	case "PHASE_TYPE_COMPLETE":
-		logrus.Debug(path, " upload file complete")
+		logx.Debug("upload", path, " upload file complete")
 		return nil
 	case "PHASE_TYPE_PENDING":
 		// break switch
