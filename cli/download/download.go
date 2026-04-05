@@ -83,11 +83,17 @@ type downloadTargetResolver interface {
 
 func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 	// Reset global variables to defaults if flags not explicitly set
-	if !cmd.Flags().Changed("path") {
+	pathValue, _ := cmd.Flags().GetString("path")
+	if pathValue == "/" {
 		folder = "/"
+	} else {
+		folder = pathValue
 	}
-	if !cmd.Flags().Changed("parent-id") {
+	parentIdValue, _ := cmd.Flags().GetString("parent-id")
+	if parentIdValue == "" {
 		parentId = ""
+	} else {
+		parentId = parentIdValue
 	}
 
 	if err := utils.CreateDirIfNotExist(output); err != nil {
@@ -107,7 +113,13 @@ func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 	}
 
 	if len(args) == 0 {
-		downloadTarget(p, "")
+		pathValue, _ := cmd.Flags().GetString("path")
+		if pathValue != "/" {
+			// When -p is specified but no positional args, download the path
+			downloadTarget(p, ".")
+		} else {
+			downloadTarget(p, "")
+		}
 		return
 	}
 
@@ -117,7 +129,9 @@ func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 }
 
 func shouldShowDownloadHelp(cmd *cobra.Command, args []string) bool {
-	return len(args) == 0
+	pathValue, _ := cmd.Flags().GetString("path")
+	parentIdValue, _ := cmd.Flags().GetString("parent-id")
+	return len(args) == 0 && pathValue == "/" && parentIdValue == ""
 }
 
 func requiresExplicitOutputFlag(cmd *cobra.Command, args []string) bool {
