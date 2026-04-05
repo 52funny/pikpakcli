@@ -193,6 +193,9 @@ func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	}
 
 	commandKey := canonicalCommandKey(c.rootCmd, cmd)
+	if shouldCompleteLocalPathFlagValue(commandKey, tokens, active, endedWithSpace) {
+		return completeLocalPath(active, false)
+	}
 	if shouldCompleteDirectoryPath(commandKey, tokens, active, endedWithSpace, consumed) {
 		return c.completeRemotePath(active, true)
 	}
@@ -206,22 +209,32 @@ func (c *shellAutoCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	return nil, 0
 }
 
+func shouldCompleteLocalPathFlagValue(commandKey string, tokens []string, active string, endedWithSpace bool) bool {
+	if commandKey == "" {
+		return false
+	}
+
+	switch commandKey {
+	case "rubbish":
+		return wantsFlagValue(tokens, active, endedWithSpace, "--rules")
+	default:
+		return false
+	}
+}
+
 func shouldCompleteDirectoryPath(commandKey string, tokens []string, active string, endedWithSpace bool, consumed int) bool {
 	if commandKey == "" {
 		return false
 	}
 
-	if wantsPathFlagValue(tokens, active, endedWithSpace) {
+	if wantsFlagValue(tokens, active, endedWithSpace, "-p", "--path") {
 		switch commandKey {
 		case "ls", "empty", "rubbish", "download", "share", "upload", "delete", "new folder", "new url", "new sha":
 			return true
 		}
 	}
 
-	positionalsAfterCommand := tokens[consumed:]
-	if active != "" {
-		positionalsAfterCommand = append(positionalsAfterCommand, active)
-	}
+	positionalsAfterCommand := positionalTokens(tokens[consumed:], active)
 
 	switch commandKey {
 	case "ls", "empty", "rubbish":
@@ -261,18 +274,18 @@ func shouldCompleteLocalTargetPath(commandKey string, tokens []string, active st
 	}
 }
 
-func wantsPathFlagValue(tokens []string, active string, endedWithSpace bool) bool {
+func wantsFlagValue(tokens []string, active string, endedWithSpace bool, flags ...string) bool {
 	if len(tokens) == 0 {
 		return false
 	}
 
 	last := tokens[len(tokens)-1]
 	if endedWithSpace {
-		return last == "-p" || last == "--path"
+		return slices.Contains(flags, last)
 	}
 
 	if active != "" {
-		return last == "-p" || last == "--path"
+		return slices.Contains(flags, last)
 	}
 
 	return false
@@ -296,7 +309,8 @@ func positionalTokens(tokens []string, active string) []string {
 			token == "-P" || token == "--parent-id" ||
 			token == "-o" || token == "--output" ||
 			token == "-i" || token == "--input" ||
-			token == "-c" || token == "--count":
+			token == "-c" || token == "--count" ||
+			token == "--rules":
 			if i+1 < len(tokens) {
 				i++
 			}
@@ -499,6 +513,10 @@ func inspectShellArgs(args []string) shellArgFlags {
 			if i+1 < len(args) {
 				i++
 			}
+		case token == "--rules":
+			if i+1 < len(args) {
+				i++
+			}
 		case strings.HasPrefix(token, "--parent-id=") || strings.HasPrefix(token, "-P="):
 			flags.hasParentID = true
 		case strings.HasPrefix(token, "-"):
@@ -545,7 +563,7 @@ func rewritePositionalPaths(args []string, currentPath string, limit int) []stri
 		switch {
 		case token == "--":
 			stopFlags = true
-		case token == "--path" || token == "-p" || token == "--parent-id" || token == "-P" || token == "--output" || token == "-o" || token == "--input" || token == "-i" || token == "--count" || token == "-c":
+		case token == "--path" || token == "-p" || token == "--parent-id" || token == "-P" || token == "--output" || token == "-o" || token == "--input" || token == "-i" || token == "--count" || token == "-c" || token == "--rules":
 			if i+1 < len(rewritten) {
 				i++
 			}

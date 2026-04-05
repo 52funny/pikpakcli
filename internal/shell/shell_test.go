@@ -195,6 +195,10 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	shareCmd := &cobra.Command{Use: "share"}
 	shareCmd.Flags().StringP("path", "p", "/", "")
 	rootCmd.AddCommand(shareCmd)
+	rubbishCmd := &cobra.Command{Use: "rubbish"}
+	rubbishCmd.Flags().StringP("path", "p", "/", "")
+	rubbishCmd.Flags().String("rules", "", "")
+	rootCmd.AddCommand(rubbishCmd)
 	deleteCmd := &cobra.Command{Use: "delete"}
 	deleteCmd.Flags().StringP("path", "p", "/", "")
 	rootCmd.AddCommand(deleteCmd)
@@ -338,6 +342,47 @@ func TestCompleterUploadHomePath(t *testing.T) {
 	require.Contains(t, candidates, []rune(testDirName+"/"))
 }
 
+func TestCompleterRubbishRulesLocalThenRemotePath(t *testing.T) {
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "rubbish_rules.txt"), []byte("*.tmp\n"), 0644))
+
+	oldWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWD)
+	})
+
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+	rubbishCmd := &cobra.Command{Use: "rubbish"}
+	rubbishCmd.Flags().StringP("path", "p", "/", "")
+	rubbishCmd.Flags().String("rules", "", "")
+	rootCmd.AddCommand(rubbishCmd)
+
+	completer := &shellAutoCompleter{
+		rootCmd: rootCmd,
+		fileStatSource: fakeFileStatProvider{
+			folders: map[string][]api.FileStat{
+				"": {
+					{Name: "My Pack", Kind: api.FileKindFolder},
+					{Name: "Movies", Kind: api.FileKindFolder},
+				},
+			},
+		},
+		currentPath: func() string {
+			return "/"
+		},
+	}
+
+	candidates, offset := completer.Do([]rune("rubbish --rules rub"), len("rubbish --rules rub"))
+	require.Equal(t, len([]rune("rub")), offset)
+	require.Contains(t, candidates, []rune("bish_rules.txt"))
+
+	candidates, offset = completer.Do([]rune("rubbish --rules rubbish_rules.txt /My"), len("rubbish --rules rubbish_rules.txt /My"))
+	require.Equal(t, len([]rune("/My")), offset)
+	require.Contains(t, candidates, []rune("\\ Pack/"))
+}
+
 func TestClearScreen(t *testing.T) {
 	var out strings.Builder
 	clearScreen(&out)
@@ -402,6 +447,7 @@ func TestAdaptShellArgs(t *testing.T) {
 		{name: "ls injects current path", args: []string{"ls"}, want: []string{"ls", "-p", "/Movies"}},
 		{name: "ls rewrites relative arg", args: []string{"ls", "Kids"}, want: []string{"ls", "/Movies/Kids"}},
 		{name: "empty rewrites relative arg", args: []string{"empty", "Kids"}, want: []string{"empty", "/Movies/Kids"}},
+		{name: "rubbish keeps local rules path and rewrites remote root", args: []string{"rubbish", "--rules", "~/Library/Application Support/pikpakcli/rules/rubbish_rules.txt", "/"}, want: []string{"rubbish", "--rules", "~/Library/Application Support/pikpakcli/rules/rubbish_rules.txt", "/"}},
 		{name: "download injects current path", args: []string{"download", "episode.mkv"}, want: []string{"download", "-p", "/Movies", "episode.mkv"}},
 		{name: "download rewrites relative path flag", args: []string{"download", "-p", "Kids", "episode.mkv"}, want: []string{"download", "-p", "/Movies/Kids", "episode.mkv"}},
 		{name: "download keeps trailing dot as positional target", args: []string{"download", "-g", "episode.mkv", "."}, want: []string{"download", "-p", "/Movies", "-g", "episode.mkv", "."}},
