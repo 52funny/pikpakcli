@@ -7,6 +7,7 @@ import (
 	del "github.com/52funny/pikpakcli/cli/del"
 	"github.com/52funny/pikpakcli/cli/download"
 	"github.com/52funny/pikpakcli/cli/empty"
+	"github.com/52funny/pikpakcli/cli/find"
 	"github.com/52funny/pikpakcli/cli/list"
 	"github.com/52funny/pikpakcli/cli/new"
 	"github.com/52funny/pikpakcli/cli/quota"
@@ -58,6 +59,7 @@ func init() {
 	rootCmd.AddCommand(empty.EmptyCmd)
 	rootCmd.AddCommand(rubbish.RubbishCmd)
 	rootCmd.AddCommand(rename.RenameCmd)
+	rootCmd.AddCommand(find.FindCmd)
 	rootCmd.AddCommand(shellCmd)
 }
 

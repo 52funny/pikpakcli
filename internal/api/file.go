@@ -306,3 +306,164 @@ START:
 
 	return nil
 }
+
+// Search Result Structure
+type SearchResult struct {
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Kind           string    `json:"kind"`
+	Size           string    `json:"size"`
+	Hash           string    `json:"hash"`
+	CreatedTime    time.Time `json:"created_time"`
+	ModifiedTime   time.Time `json:"modified_time"`
+	ThumbnailLink  string    `json:"thumbnail_link"`
+	WebContentLink string    `json:"web_content_link"`
+	ParentID       string    `json:"parent_id"`
+	UserID         string    `json:"user_id"`
+	Path           string    `json:"path"`
+}
+
+// Search API Response
+type SearchResponse struct {
+	NextPageToken string         `json:"next_page_token"`
+	Files         []SearchResult `json:"files"`
+}
+
+// Search File by name recursively
+func (p *PikPak) SearchFiles(phrase string, limit int) ([]SearchResult, error) {
+	// If empty
+	if phrase == "" {
+		return nil, errors.New("search phrase cannot be empty")
+	}
+
+	var results []SearchResult
+	err := p.searchFilesRecursive("/", phrase, &results, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// Search files in a specific path, no recursive for performance
+func (p *PikPak) SearchFilesInPath(phrase string, targetPath string, limit int) ([]SearchResult, error) {
+	// If empty
+	if phrase == "" {
+		return nil, errors.New("search phrase cannot be empty")
+	}
+
+	parentID, err := p.GetPathFolderId(targetPath)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := p.GetFolderFileStatList(parentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []SearchResult
+	count := 0
+
+	for _, file := range files {
+		if limit > 0 && count >= limit {
+			break
+		}
+
+		// Check if filename matches the search phrase (case-insensitive)
+		if strings.Contains(strings.ToLower(file.Name), strings.ToLower(phrase)) {
+			filePath := targetPath
+			if filePath != "/" {
+				filePath = filePath + "/" + file.Name
+			} else {
+				filePath = "/" + file.Name
+			}
+			results = append(results, SearchResult{
+				ID:            file.ID,
+				Name:          file.Name,
+				Kind:          file.Kind,
+				Size:          file.Size,
+				Hash:          file.Hash,
+				CreatedTime:   file.CreatedTime,
+				ModifiedTime:  file.ModifiedTime,
+				ThumbnailLink: file.ThumbnailLink,
+				ParentID:      file.ParentID,
+				UserID:        file.UserID,
+				Path:          filePath,
+			})
+			count++
+		}
+	}
+
+	return results, nil
+}
+
+// Recursively searches for files matching the phrase
+/* TODO
+I implement using given methods in this project
+I cannot find the API for searching files, therefore implementing using recursive traversal
+If search API is available, this implementation should be replaced */
+func (p *PikPak) searchFilesRecursive(parentPath string, phrase string, results *[]SearchResult, limit int) error {
+	if limit > 0 && len(*results) >= limit {
+		return nil
+	}
+
+	parentID, err := p.GetPathFolderId(parentPath)
+	if err != nil {
+		return err
+	}
+
+	files, err := p.GetFolderFileStatList(parentID)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if limit > 0 && len(*results) >= limit {
+			break
+		}
+
+		// Check if filename matches the search phrase (case-insensitive)
+		if strings.Contains(strings.ToLower(file.Name), strings.ToLower(phrase)) {
+			filePath := parentPath
+			if filePath != "/" {
+				filePath = filePath + "/" + file.Name
+			} else {
+				filePath = "/" + file.Name
+			}
+			*results = append(*results, SearchResult{
+				ID:            file.ID,
+				Name:          file.Name,
+				Kind:          file.Kind,
+				Size:          file.Size,
+				Hash:          file.Hash,
+				CreatedTime:   file.CreatedTime,
+				ModifiedTime:  file.ModifiedTime,
+				ThumbnailLink: file.ThumbnailLink,
+				ParentID:      file.ParentID,
+				UserID:        file.UserID,
+				Path:          filePath,
+			})
+		}
+
+		// Recursively search in subdirectories
+		if file.Kind == "drive#folder" {
+			if limit > 0 && len(*results) >= limit {
+				break
+			}
+			nextPath := parentPath
+			if nextPath != "/" {
+				nextPath = nextPath + "/" + file.Name
+			} else {
+				nextPath = "/" + file.Name
+			}
+			err := p.searchFilesRecursive(nextPath, phrase, results, limit)
+			if err != nil {
+				logx.Warnf("search", "failed to search in folder %s: %v", nextPath, err)
+				// Continue searching in other folders on error
+			}
+		}
+	}
+
+	return nil
+}

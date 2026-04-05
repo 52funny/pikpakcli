@@ -484,6 +484,13 @@ func adaptShellArgs(rootCmd *cobra.Command, currentPath string, args []string) [
 		}
 	case "rename":
 		rest = rewritePositionalPaths(rest, currentPath, 1)
+	case "find", "f":
+		// If no flags and only one positional, treat it as search phrase and use current path
+		if !flags.hasPath && flags.positionals == 1 {
+			// Use current path if only one positional argument and no path flag
+			// Only in shell as command-line usage default is root, explicit defined path is recommanded
+			rest = append([]string{"-p", currentPath}, rest...)
+		}
 	}
 
 	return append(append([]string{}, args[:consumed]...), rest...)
