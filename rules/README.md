@@ -29,3 +29,7 @@ cache/*.part
 pikpakcli rubbish --rules rules/rubbish_rules.txt
 pikpakcli rubbish --rules rules/rubbish_rules.txt --delete
 ```
+
+## Contributions
+
+If you find common rubbish files or directories that should be covered by the default rules, PRs are welcome.
