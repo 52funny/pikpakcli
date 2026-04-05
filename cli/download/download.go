@@ -82,6 +82,14 @@ type downloadTargetResolver interface {
 }
 
 func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
+	// Reset global variables to defaults if flags not explicitly set
+	if !cmd.Flags().Changed("path") {
+		folder = "/"
+	}
+	if !cmd.Flags().Changed("parent-id") {
+		parentId = ""
+	}
+
 	if err := utils.CreateDirIfNotExist(output); err != nil {
 		fmt.Println("Create output directory failed")
 		logx.Error(err)
@@ -109,7 +117,7 @@ func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 }
 
 func shouldShowDownloadHelp(cmd *cobra.Command, args []string) bool {
-	return len(args) == 0 && !cmd.Flags().Changed("path") && !cmd.Flags().Changed("parent-id")
+	return len(args) == 0
 }
 
 func requiresExplicitOutputFlag(cmd *cobra.Command, args []string) bool {
@@ -126,6 +134,12 @@ func requiresExplicitOutputFlag(cmd *cobra.Command, args []string) bool {
 }
 
 func downloadTarget(p *api.PikPak, arg string) {
+	if arg == "*" {
+		// Download all files in current directory (non-recursive)
+		downloadFilesInCurrentDir(p)
+		return
+	}
+
 	stat, err := resolveDownloadTarget(p, arg)
 	if err != nil {
 		target := remoteTargetPath(arg)
@@ -145,6 +159,44 @@ func downloadTarget(p *api.PikPak, arg string) {
 			output: output,
 		},
 	})
+}
+
+func downloadFilesInCurrentDir(p *api.PikPak) {
+	parentID := ""
+	var err error
+	if folder != "/" {
+		parentID, err = p.GetPathFolderId(folder)
+		if err != nil {
+			fmt.Println("Get current directory failed")
+			logx.Error(err)
+			return
+		}
+	}
+
+	files, err := p.GetFolderFileStatList(parentID)
+	if err != nil {
+		fmt.Println("Get folder file list failed")
+		logx.Error(err)
+		return
+	}
+
+	var warpFiles []warpFile
+	for _, file := range files {
+		if file.Kind == api.FileKindFile {
+			f, err := p.GetFile(file.ID)
+			if err != nil {
+				fmt.Println("Get file failed:", file.Name)
+				logx.Error(err)
+				continue
+			}
+			warpFiles = append(warpFiles, warpFile{
+				f:      &f,
+				output: output,
+			})
+		}
+	}
+
+	downloadFiles(p, warpFiles)
 }
 
 func downloadFolder(p *api.PikPak, folderID string, rootOutput string) {
