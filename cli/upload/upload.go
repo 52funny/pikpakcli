@@ -46,6 +46,10 @@ var UploadCmd = &cobra.Command{
 				}
 			}
 		}()
+		if len(args) == 0 {
+			cmd.Help()
+			return
+		}
 		for _, v := range args {
 			v = utils.ExpandLocalPath(v)
 			stat, err := os.Stat(v)

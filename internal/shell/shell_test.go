@@ -454,6 +454,7 @@ func TestAdaptShellArgs(t *testing.T) {
 		{name: "download keeps trailing dot as positional target", args: []string{"download", "-g", "episode.mkv", "."}, want: []string{"download", "-p", "/Movies", "-g", "episode.mkv", "."}},
 		{name: "share injects current path", args: []string{"share", "episode.mkv"}, want: []string{"share", "-p", "/Movies", "episode.mkv"}},
 		{name: "upload injects current path", args: []string{"upload", "local.file"}, want: []string{"upload", "-p", "/Movies", "local.file"}},
+		{name: "upload supports glob star", args: []string{"upload", "*"}, want: []string{"upload", "-p", "/Movies", "open.go", "shell.go", "shell_test.go"}},
 		{name: "delete rewrites relative args", args: []string{"delete", "a", "b/c"}, want: []string{"delete", "/Movies/a", "/Movies/b/c"}},
 		{name: "rm alias rewrites relative args", args: []string{"rm", "a", "b/c"}, want: []string{"rm", "/Movies/a", "/Movies/b/c"}},
 		{name: "rename rewrites first arg only", args: []string{"rename", "old.txt", "new.txt"}, want: []string{"rename", "/Movies/old.txt", "new.txt"}},

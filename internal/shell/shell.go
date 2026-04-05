@@ -460,13 +460,23 @@ func adaptShellArgs(rootCmd *cobra.Command, currentPath string, args []string) [
 		if !flags.hasPath && !flags.hasParentID && flags.positionals > 0 {
 			rest = append([]string{"-p", currentPath}, rest...)
 		}
-		// Handle glob patterns like "*" for download
-		if commandKey == "download" {
-			for i, arg := range rest {
-				if arg == "*" {
-					rest[i] = "."
+		// Handle glob patterns for upload (local paths)
+		if commandKey == "upload" {
+			expandedRest := make([]string, 0, len(rest))
+			for _, arg := range rest {
+				if strings.Contains(arg, "*") {
+					// Expand glob pattern for local files
+					matches, err := filepath.Glob(utils.ExpandLocalPath(arg))
+					if err == nil && len(matches) > 0 {
+						expandedRest = append(expandedRest, matches...)
+					} else {
+						expandedRest = append(expandedRest, arg)
+					}
+				} else {
+					expandedRest = append(expandedRest, arg)
 				}
 			}
+			rest = expandedRest
 		}
 	case "delete":
 		if !flags.hasPath {

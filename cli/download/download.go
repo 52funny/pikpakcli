@@ -341,6 +341,14 @@ func resolveDownloadTarget(p downloadTargetResolver, arg string) (api.FileStat, 
 		return p.GetFileByPath(remotePath)
 	}
 
+	// Handle glob patterns by removing them
+	if strings.Contains(arg, "*") {
+		arg = strings.Split(arg, "*")[0]
+		if arg == "" {
+			return api.FileStat{}, fmt.Errorf("invalid path with glob pattern")
+		}
+	}
+
 	if parentId != "" && !filepath.IsAbs(arg) && !strings.Contains(arg, string(filepath.Separator)) {
 		return p.GetFileStat(parentId, arg)
 	}
