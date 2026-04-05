@@ -148,6 +148,37 @@
   pikpakcli delete -p /Movies File1.mp4 File2.mp4
   ```
 
+## 垃圾文件清理
+
+- 使用默认垃圾文件规则递归扫描目录。如果用户配置目录中还没有规则文件，CLI 会自动从当前仓库下载默认规则。
+
+  ```bash
+  pikpakcli rubbish
+  pikpakcli rubbish -p /Movies
+  ```
+
+- 默认只预览匹配结果，不会删除；加上 `-d` 后才会执行删除。
+
+  ```bash
+  pikpakcli rubbish -p /Movies
+  pikpakcli rubbish -p /Movies -d
+  ```
+
+- 打开本地规则文件或规则目录。如果默认规则文件不存在，会先下载再打开。
+
+  ```bash
+  pikpakcli rubbish --open-rules
+  pikpakcli rubbish --open-rules-dir
+  ```
+
+- 手动下载默认规则文件，或者指定自定义本地路径 / 远程 URL 作为规则来源。
+
+  ```bash
+  pikpakcli rubbish --download-rules
+  pikpakcli rubbish --rules ~/.config/pikpakcli/rules/rubbish_rules.txt
+  pikpakcli rubbish --rules https://raw.githubusercontent.com/52funny/pikpakcli/master/rules/rubbish_rules.txt
+  ```
+
 ## 重命名
 
 - 按完整路径重命名文件或文件夹

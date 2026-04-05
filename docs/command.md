@@ -151,6 +151,37 @@
   pikpakcli delete -p /Movies File1.mp4 File2.mp4
   ```
 
+## Rubbish
+
+- Scan a directory recursively with the default rubbish rules. If the rule file does not exist in the user config directory, the CLI downloads it from this repository automatically.
+
+  ```bash
+  pikpakcli rubbish
+  pikpakcli rubbish -p /Movies
+  ```
+
+- Preview matched rubbish files without deleting them, then delete them with `-d`.
+
+  ```bash
+  pikpakcli rubbish -p /Movies
+  pikpakcli rubbish -p /Movies -d
+  ```
+
+- Open the local rules file or the local rules directory. If the default rule file is missing, it is downloaded first and then opened.
+
+  ```bash
+  pikpakcli rubbish --open-rules
+  pikpakcli rubbish --open-rules-dir
+  ```
+
+- Download the default rules file explicitly, or use a custom local path or remote URL as the rules source.
+
+  ```bash
+  pikpakcli rubbish --download-rules
+  pikpakcli rubbish --rules ~/.config/pikpakcli/rules/rubbish_rules.txt
+  pikpakcli rubbish --rules https://raw.githubusercontent.com/52funny/pikpakcli/master/rules/rubbish_rules.txt
+  ```
+
 ## Rename
 
 - Rename a file or folder by full path.
