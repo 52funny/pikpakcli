@@ -213,7 +213,7 @@ func shouldCompleteDirectoryPath(commandKey string, tokens []string, active stri
 
 	if wantsPathFlagValue(tokens, active, endedWithSpace) {
 		switch commandKey {
-		case "ls", "empty", "download", "share", "upload", "delete", "new folder", "new url", "new sha":
+		case "ls", "empty", "rubbish", "download", "share", "upload", "delete", "new folder", "new url", "new sha":
 			return true
 		}
 	}
@@ -224,7 +224,7 @@ func shouldCompleteDirectoryPath(commandKey string, tokens []string, active stri
 	}
 
 	switch commandKey {
-	case "ls", "empty":
+	case "ls", "empty", "rubbish":
 		return len(positionalsAfterCommand) <= 1
 	}
 
@@ -436,7 +436,7 @@ func adaptShellArgs(rootCmd *cobra.Command, currentPath string, args []string) [
 	flags := inspectShellArgs(rest)
 
 	switch commandKey {
-	case "ls", "empty":
+	case "ls", "empty", "rubbish":
 		rest = rewritePositionalPaths(rest, currentPath, 1)
 		if flags.positionals == 0 && !flags.hasPath && !flags.hasParentID {
 			rest = append([]string{"-p", currentPath}, rest...)

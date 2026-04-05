@@ -1,0 +1,45 @@
+# Rubbish match rules for the future `rubbish` command.
+# Format:
+# - one rule per line
+# - empty lines are ignored
+# - lines starting with # are comments
+# - lines starting with ! are exclude rules
+#
+# Suggested matching behavior:
+# - exact names:      .DS_Store
+# - wildcard names:   *.tmp
+# - path patterns:    cache/*.part
+# - exclude rules:    !important/*.tmp
+#
+# Example:
+# pikpakcli rubbish --rules rules/rubbish_rules.txt --delete
+
+# macOS metadata
+.DS_Store
+._*
+
+# Windows metadata
+Thumbs.db
+desktop.ini
+
+# partial downloads
+*.part
+*.crdownload
+*.download
+*.tmp
+
+# editor temp files
+*.swp
+*.swo
+*~
+*.bak
+
+# optional examples
+# *.ass.tmp
+# *.srt.tmp
+
+# exclude rules
+!.gitkeep
+!.keep
+!/System/*
+!/Applications/*
