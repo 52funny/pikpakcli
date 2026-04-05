@@ -448,6 +448,7 @@ func TestAdaptShellArgs(t *testing.T) {
 		{name: "ls rewrites relative arg", args: []string{"ls", "Kids"}, want: []string{"ls", "/Movies/Kids"}},
 		{name: "empty rewrites relative arg", args: []string{"empty", "Kids"}, want: []string{"empty", "/Movies/Kids"}},
 		{name: "rubbish keeps local rules path and rewrites remote root", args: []string{"rubbish", "--rules", "~/Library/Application Support/pikpakcli/rules/rubbish_rules.txt", "/"}, want: []string{"rubbish", "--rules", "~/Library/Application Support/pikpakcli/rules/rubbish_rules.txt", "/"}},
+		{name: "download no args doesn't inject current path", args: []string{"download"}, want: []string{"download"}},
 		{name: "download injects current path", args: []string{"download", "episode.mkv"}, want: []string{"download", "-p", "/Movies", "episode.mkv"}},
 		{name: "download rewrites relative path flag", args: []string{"download", "-p", "Kids", "episode.mkv"}, want: []string{"download", "-p", "/Movies/Kids", "episode.mkv"}},
 		{name: "download keeps trailing dot as positional target", args: []string{"download", "-g", "episode.mkv", "."}, want: []string{"download", "-p", "/Movies", "-g", "episode.mkv", "."}},

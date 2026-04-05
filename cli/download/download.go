@@ -93,6 +93,11 @@ func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 		return
 	}
 
+	if shouldShowDownloadHelp(cmd, args) {
+		cmd.Help()
+		return
+	}
+
 	if len(args) == 0 {
 		downloadTarget(p, "")
 		return
@@ -101,6 +106,10 @@ func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 	for _, arg := range args {
 		downloadTarget(p, arg)
 	}
+}
+
+func shouldShowDownloadHelp(cmd *cobra.Command, args []string) bool {
+	return len(args) == 0 && !cmd.Flags().Changed("path") && !cmd.Flags().Changed("parent-id")
 }
 
 func requiresExplicitOutputFlag(cmd *cobra.Command, args []string) bool {

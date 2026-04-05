@@ -457,7 +457,7 @@ func adaptShellArgs(rootCmd *cobra.Command, currentPath string, args []string) [
 		}
 	case "download", "share", "upload", "new folder", "new url", "new sha":
 		rest = rewritePathFlagValues(rest, currentPath)
-		if !flags.hasPath && !flags.hasParentID {
+		if flags.hasPath || flags.hasParentID || flags.positionals > 0 {
 			rest = append([]string{"-p", currentPath}, rest...)
 		}
 	case "delete":
