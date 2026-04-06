@@ -118,8 +118,13 @@ func Start(rootCmd *cobra.Command) {
 			l.SetPrompt(promptForPath(currentPath))
 			continue
 		case "open":
+			expandedArgs, err := expandOpenGlobs(currentPath, &p, args[1:])
+			if err != nil {
+				fmt.Println(err.Error())
+				continue
+			}
 			cmdCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-			if err := handleOpenCommand(p.WithContext(cmdCtx), currentPath, args[1:]); err != nil {
+			if err := handleOpenCommand(p.WithContext(cmdCtx), currentPath, expandedArgs); err != nil {
 				fmt.Println(err.Error())
 			}
 			stop()
@@ -129,6 +134,11 @@ func Start(rootCmd *cobra.Command) {
 			continue
 		}
 		args = adaptShellArgs(rootCmd, currentPath, args)
+		args, err = expandShellGlobs(rootCmd, currentPath, &p, args)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
 
 		cmdCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		setCommandContextTree(rootCmd, cmdCtx)
@@ -619,6 +629,361 @@ func resolveShellPath(currentPath string, target string) string {
 	}
 
 	return path.Clean(path.Join(currentPath, target))
+}
+
+func expandOpenGlobs(currentPath string, source fileStatProvider, args []string) ([]string, error) {
+	expanded := make([]string, 0, len(args))
+	for _, arg := range args {
+		matches, err := expandRemotePatternToken(arg, "", currentPath, source, false)
+		if err != nil {
+			return nil, err
+		}
+		expanded = append(expanded, matches...)
+	}
+	return expanded, nil
+}
+
+func expandShellGlobs(rootCmd *cobra.Command, currentPath string, source fileStatProvider, args []string) ([]string, error) {
+	if len(args) == 0 {
+		return args, nil
+	}
+
+	cmd, consumed := resolveCommand(rootCmd, args)
+	if consumed == 0 {
+		return args, nil
+	}
+
+	commandKey := canonicalCommandKey(rootCmd, cmd)
+	rest := append([]string{}, args[consumed:]...)
+
+	var (
+		expanded []string
+		err      error
+	)
+
+	switch commandKey {
+	case "download":
+		expanded, err = expandDownloadGlobs(rest, currentPath, source)
+	case "delete":
+		expanded, err = expandDeleteGlobs(rest, currentPath, source)
+	case "upload":
+		expanded, err = expandUploadGlobs(rest)
+	default:
+		return args, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return append(append([]string{}, args[:consumed]...), expanded...), nil
+}
+
+func expandDownloadGlobs(args []string, currentPath string, source fileStatProvider) ([]string, error) {
+	return rewriteDownloadLikeArgs(args, currentPath, source)
+}
+
+func expandDeleteGlobs(args []string, currentPath string, source fileStatProvider) ([]string, error) {
+	rewritten := make([]string, 0, len(args))
+	stopFlags := false
+	pathValue := ""
+
+	for i := 0; i < len(args); i++ {
+		token := args[i]
+		if stopFlags {
+			matches, err := expandDeletePatternToken(token, pathValue, currentPath, source)
+			if err != nil {
+				return nil, err
+			}
+			rewritten = append(rewritten, matches...)
+			continue
+		}
+
+		switch {
+		case token == "--":
+			stopFlags = true
+			rewritten = append(rewritten, token)
+		case token == "--path" || token == "-p":
+			rewritten = append(rewritten, token)
+			if i+1 < len(args) {
+				pathValue = args[i+1]
+				rewritten = append(rewritten, pathValue)
+				i++
+			}
+		case strings.HasPrefix(token, "--path="):
+			pathValue = strings.TrimPrefix(token, "--path=")
+			rewritten = append(rewritten, token)
+		case strings.HasPrefix(token, "-p="):
+			pathValue = strings.TrimPrefix(token, "-p=")
+			rewritten = append(rewritten, token)
+		default:
+			if consumesNextValue(token) {
+				rewritten = append(rewritten, token)
+				if i+1 < len(args) {
+					rewritten = append(rewritten, args[i+1])
+					i++
+				}
+				continue
+			}
+			if strings.HasPrefix(token, "-") {
+				rewritten = append(rewritten, token)
+				continue
+			}
+			matches, err := expandDeletePatternToken(token, pathValue, currentPath, source)
+			if err != nil {
+				return nil, err
+			}
+			rewritten = append(rewritten, matches...)
+		}
+	}
+
+	return rewritten, nil
+}
+
+func expandUploadGlobs(args []string) ([]string, error) {
+	rewritten := make([]string, 0, len(args))
+	stopFlags := false
+
+	for i := 0; i < len(args); i++ {
+		token := args[i]
+		if stopFlags {
+			matches, err := expandLocalPatternToken(token)
+			if err != nil {
+				return nil, err
+			}
+			rewritten = append(rewritten, matches...)
+			continue
+		}
+
+		switch {
+		case token == "--":
+			stopFlags = true
+			rewritten = append(rewritten, token)
+		case token == "--path" || token == "-p" ||
+			token == "--parent-id" || token == "-P" ||
+			token == "--concurrency" || token == "-c" ||
+			token == "--exn" || token == "-e":
+			rewritten = append(rewritten, token)
+			if i+1 < len(args) {
+				rewritten = append(rewritten, args[i+1])
+				i++
+			}
+		case strings.HasPrefix(token, "--path=") ||
+			strings.HasPrefix(token, "-p=") ||
+			strings.HasPrefix(token, "--parent-id=") ||
+			strings.HasPrefix(token, "-P=") ||
+			strings.HasPrefix(token, "--concurrency=") ||
+			strings.HasPrefix(token, "-c=") ||
+			strings.HasPrefix(token, "--exn=") ||
+			strings.HasPrefix(token, "-e=") ||
+			strings.HasPrefix(token, "-"):
+			rewritten = append(rewritten, token)
+		default:
+			matches, err := expandLocalPatternToken(token)
+			if err != nil {
+				return nil, err
+			}
+			rewritten = append(rewritten, matches...)
+		}
+	}
+
+	return rewritten, nil
+}
+
+func rewriteDownloadLikeArgs(args []string, currentPath string, source fileStatProvider) ([]string, error) {
+	rewritten := make([]string, 0, len(args))
+	stopFlags := false
+	pathValue := ""
+	hasParentID := false
+
+	for i := 0; i < len(args); i++ {
+		token := args[i]
+		if stopFlags {
+			matches, err := expandRemotePatternToken(token, pathValue, currentPath, source, true)
+			if err != nil {
+				return nil, err
+			}
+			rewritten = append(rewritten, matches...)
+			continue
+		}
+
+		switch {
+		case token == "--":
+			stopFlags = true
+			rewritten = append(rewritten, token)
+		case token == "--path" || token == "-p":
+			rewritten = append(rewritten, token)
+			if i+1 < len(args) {
+				pathValue = args[i+1]
+				rewritten = append(rewritten, pathValue)
+				i++
+			}
+		case strings.HasPrefix(token, "--path="):
+			pathValue = strings.TrimPrefix(token, "--path=")
+			rewritten = append(rewritten, token)
+		case strings.HasPrefix(token, "-p="):
+			pathValue = strings.TrimPrefix(token, "-p=")
+			rewritten = append(rewritten, token)
+		case token == "--parent-id" || token == "-P":
+			hasParentID = true
+			rewritten = append(rewritten, token)
+			if i+1 < len(args) {
+				rewritten = append(rewritten, args[i+1])
+				i++
+			}
+		case strings.HasPrefix(token, "--parent-id=") || strings.HasPrefix(token, "-P="):
+			hasParentID = true
+			rewritten = append(rewritten, token)
+		default:
+			if consumesNextValue(token) {
+				rewritten = append(rewritten, token)
+				if i+1 < len(args) {
+					rewritten = append(rewritten, args[i+1])
+					i++
+				}
+				continue
+			}
+			if strings.HasPrefix(token, "-") {
+				rewritten = append(rewritten, token)
+				continue
+			}
+			if hasParentID && pathValue == "" && hasWildcard(token) {
+				return nil, fmt.Errorf("shell: wildcard expansion with --parent-id requires --path")
+			}
+			matches, err := expandRemotePatternToken(token, pathValue, currentPath, source, true)
+			if err != nil {
+				return nil, err
+			}
+			rewritten = append(rewritten, matches...)
+		}
+	}
+
+	return rewritten, nil
+}
+
+func expandDeletePatternToken(token string, pathValue string, currentPath string, source fileStatProvider) ([]string, error) {
+	if !hasWildcard(token) {
+		return []string{token}, nil
+	}
+	if pathValue != "" && !path.IsAbs(token) && strings.Contains(token, "/") {
+		return nil, fmt.Errorf("shell: wildcard expansion with -p does not support nested remote paths: %s", token)
+	}
+	return expandRemotePatternToken(token, pathValue, currentPath, source, pathValue != "")
+}
+
+func expandRemotePatternToken(token string, pathValue string, currentPath string, source fileStatProvider, preferRelative bool) ([]string, error) {
+	if !hasWildcard(token) {
+		return []string{token}, nil
+	}
+
+	basePath := currentPath
+	if strings.TrimSpace(pathValue) != "" {
+		basePath = pathValue
+	}
+
+	patternPath := token
+	if !path.IsAbs(patternPath) {
+		patternPath = path.Clean(path.Join(basePath, patternPath))
+	} else {
+		patternPath = path.Clean(patternPath)
+	}
+
+	parentPath := path.Dir(patternPath)
+	if parentPath == "." {
+		parentPath = "/"
+	}
+
+	matches, err := matchRemotePattern(source, parentPath, path.Base(patternPath))
+	if err != nil {
+		return nil, err
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("shell: no matches found for %s", token)
+	}
+
+	if preferRelative && !path.IsAbs(token) && strings.TrimSpace(pathValue) != "" {
+		rewritten := make([]string, 0, len(matches))
+		for _, match := range matches {
+			rewritten = append(rewritten, relativeRemotePath(pathValue, match))
+		}
+		return rewritten, nil
+	}
+
+	return matches, nil
+}
+
+func matchRemotePattern(source fileStatProvider, parentPath string, pattern string) ([]string, error) {
+	parentID := ""
+	if parentPath != "/" {
+		var err error
+		parentID, err = source.GetPathFolderId(parentPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	files, err := source.GetFolderFileStatList(parentID)
+	if err != nil {
+		return nil, err
+	}
+
+	matches := make([]string, 0)
+	for _, file := range files {
+		matched, err := path.Match(pattern, file.Name)
+		if err != nil {
+			return nil, fmt.Errorf("shell: invalid wildcard pattern %s: %w", pattern, err)
+		}
+		if matched {
+			matches = append(matches, path.Join(parentPath, file.Name))
+		}
+	}
+	return matches, nil
+}
+
+func expandLocalPatternToken(token string) ([]string, error) {
+	if !hasWildcard(token) {
+		return []string{token}, nil
+	}
+
+	pattern := utils.ExpandLocalPath(token)
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("shell: invalid wildcard pattern %s: %w", token, err)
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("shell: no matches found for %s", token)
+	}
+	return matches, nil
+}
+
+func consumesNextValue(token string) bool {
+	switch token {
+	case "--path", "-p",
+		"--parent-id", "-P",
+		"--output", "-o",
+		"--input", "-i",
+		"--count", "-c",
+		"--rules":
+		return true
+	default:
+		return false
+	}
+}
+
+func hasWildcard(value string) bool {
+	return strings.ContainsAny(value, "*?[")
+}
+
+func relativeRemotePath(basePath string, fullPath string) string {
+	base := path.Clean(basePath)
+	full := path.Clean(fullPath)
+	if base == "/" {
+		return strings.TrimPrefix(full, "/")
+	}
+	prefix := base + "/"
+	if strings.HasPrefix(full, prefix) {
+		return strings.TrimPrefix(full, prefix)
+	}
+	return full
 }
 
 func splitCompletionLine(input string) ([]string, string, bool) {

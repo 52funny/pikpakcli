@@ -471,6 +471,94 @@ func TestAdaptShellArgs(t *testing.T) {
 	}
 }
 
+func TestExpandShellGlobsDownload(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+	downloadCmd := &cobra.Command{Use: "download"}
+	downloadCmd.Flags().StringP("path", "p", "/", "")
+	downloadCmd.Flags().StringP("parent-id", "P", "", "")
+	rootCmd.AddCommand(downloadCmd)
+
+	args := adaptShellArgs(rootCmd, "/Movies", []string{"download", "*.mp4"})
+	expanded, err := expandShellGlobs(rootCmd, "/Movies", fakeFileStatProvider{
+		folders: map[string][]api.FileStat{
+			"movies-id": {
+				{Name: "movie-1.mp4", Kind: api.FileKindFile},
+				{Name: "movie-2.mp4", Kind: api.FileKindFile},
+				{Name: "note.txt", Kind: api.FileKindFile},
+			},
+		},
+		ids: map[string]string{
+			"/Movies": "movies-id",
+		},
+	}, args)
+	require.NoError(t, err)
+	require.Equal(t, []string{"download", "-p", "/Movies", "movie-1.mp4", "movie-2.mp4"}, expanded)
+}
+
+func TestExpandShellGlobsDelete(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+	deleteCmd := &cobra.Command{Use: "delete"}
+	deleteCmd.Flags().StringP("path", "p", "/", "")
+	rootCmd.AddCommand(deleteCmd)
+
+	args := adaptShellArgs(rootCmd, "/Movies", []string{"delete", "*.srt"})
+	expanded, err := expandShellGlobs(rootCmd, "/Movies", fakeFileStatProvider{
+		folders: map[string][]api.FileStat{
+			"movies-id": {
+				{Name: "episode-1.srt", Kind: api.FileKindFile},
+				{Name: "episode-2.srt", Kind: api.FileKindFile},
+				{Name: "episode-1.mkv", Kind: api.FileKindFile},
+			},
+		},
+		ids: map[string]string{
+			"/Movies": "movies-id",
+		},
+	}, args)
+	require.NoError(t, err)
+	require.Equal(t, []string{"delete", "/Movies/episode-1.srt", "/Movies/episode-2.srt"}, expanded)
+}
+
+func TestExpandShellGlobsUpload(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "pikpakcli"}
+	uploadCmd := &cobra.Command{Use: "upload"}
+	uploadCmd.Flags().StringP("path", "p", "/", "")
+	uploadCmd.Flags().StringP("parent-id", "P", "", "")
+	uploadCmd.Flags().Int64P("concurrency", "c", 16, "")
+	uploadCmd.Flags().StringSliceP("exn", "e", nil, "")
+	uploadCmd.Flags().BoolP("sync", "s", false, "")
+	rootCmd.AddCommand(uploadCmd)
+
+	tempDir := t.TempDir()
+	videoA := filepath.Join(tempDir, "a.mkv")
+	videoB := filepath.Join(tempDir, "b.mkv")
+	note := filepath.Join(tempDir, "note.txt")
+	require.NoError(t, os.WriteFile(videoA, []byte("a"), 0o644))
+	require.NoError(t, os.WriteFile(videoB, []byte("b"), 0o644))
+	require.NoError(t, os.WriteFile(note, []byte("c"), 0o644))
+
+	args := adaptShellArgs(rootCmd, "/Movies", []string{"upload", filepath.Join(tempDir, "*.mkv")})
+	expanded, err := expandShellGlobs(rootCmd, "/Movies", fakeFileStatProvider{}, args)
+	require.NoError(t, err)
+	require.Equal(t, []string{"upload", "-p", "/Movies", videoA, videoB}, expanded)
+}
+
+func TestExpandOpenGlobs(t *testing.T) {
+	expanded, err := expandOpenGlobs("/Movies", fakeFileStatProvider{
+		folders: map[string][]api.FileStat{
+			"movies-id": {
+				{Name: "movie-1.mp4", Kind: api.FileKindFile},
+				{Name: "movie-2.mp4", Kind: api.FileKindFile},
+				{Name: "cover.jpg", Kind: api.FileKindFile},
+			},
+		},
+		ids: map[string]string{
+			"/Movies": "movies-id",
+		},
+	}, []string{"*.mp4"})
+	require.NoError(t, err)
+	require.Equal(t, []string{"/Movies/movie-1.mp4", "/Movies/movie-2.mp4"}, expanded)
+}
+
 func TestCompleterCDPath(t *testing.T) {
 	completer := &shellAutoCompleter{
 		rootCmd: &cobra.Command{Use: "pikpakcli"},
