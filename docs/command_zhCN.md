@@ -26,6 +26,8 @@
   pikpakcli upload -P AgmoDVmJPYbHn8ito1 .
   ```
 
+- 直接运行 `pikpakcli upload` 且不带任何本地路径参数时，会显示该命令的帮助信息。
+
 ## 下载
 
 - 下载 `-p` 指向的目标。如果该目标是文件夹则递归下载，如果是文件则下载该文件

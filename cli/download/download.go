@@ -21,6 +21,10 @@ var DownloadCmd = &cobra.Command{
 	Aliases: []string{"d"},
 	Short:   `Download file from pikpak server`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			cmd.Help()
+			return
+		}
 		p := api.NewPikPakWithContext(cmd.Context(), conf.Config.Username, conf.Config.Password)
 		err := p.Login()
 		if err != nil {
@@ -90,11 +94,6 @@ func handleDownload(cmd *cobra.Command, p *api.PikPak, args []string) {
 
 	if requiresExplicitOutputFlag(cmd, args) {
 		fmt.Println("Use -o to specify the output directory when downloading specific files")
-		return
-	}
-
-	if len(args) == 0 {
-		downloadTarget(p, "")
 		return
 	}
 

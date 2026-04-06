@@ -28,6 +28,8 @@
   pikpakcli upload -P AgmoDVmJPYbHn8ito1 .
   ```
 
+- Running `pikpakcli upload` without any local path arguments shows the command help.
+
 ## Download
 
 - Download the target pointed to by `-p`. If it is a directory, download it recursively; if it is a file, download that file.
