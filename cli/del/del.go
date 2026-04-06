@@ -2,6 +2,7 @@ package delete
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/52funny/pikpakcli/conf"
 	"github.com/52funny/pikpakcli/internal/api"
@@ -26,6 +27,12 @@ var DeleteCmd = &cobra.Command{
 		}
 
 		flagPathSpecified := cmd.Flags().Changed("path")
+		args, err := api.ExpandRemotePatterns(&p, path, args, flagPathSpecified)
+		if err != nil {
+			fmt.Println("Expand delete target failed")
+			logx.Error(err)
+			return
+		}
 		for parentPath, names := range groupDeleteTargets(args, flagPathSpecified) {
 			if err := deleteEntries(&p, parentPath, names); err != nil {
 				fmt.Println("Delete entries failed")
@@ -45,7 +52,7 @@ func groupDeleteTargets(args []string, forceParentPath bool) map[string][]string
 		parentPath := path
 		name := arg
 
-		if !forceParentPath {
+		if !forceParentPath || strings.HasPrefix(arg, "/") || strings.Contains(arg, "/") {
 			resolvedParentPath, resolvedName := utils.SplitRemotePath(arg)
 			if resolvedName == "" {
 				continue

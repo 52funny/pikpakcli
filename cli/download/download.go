@@ -32,6 +32,12 @@ var DownloadCmd = &cobra.Command{
 			logx.Error(err)
 			return
 		}
+		args, err = api.ExpandRemotePatterns(&p, folder, args, false)
+		if err != nil {
+			fmt.Println("Expand download target failed")
+			logx.Error(err)
+			return
+		}
 		handleDownload(cmd, &p, args)
 	},
 }

@@ -34,6 +34,17 @@ Example: pikpakcli rename /my-folder/old-name.txt new-name.txt`,
 			return fmt.Errorf("new name must not contain path separators")
 		}
 
+		expandedPaths, err := api.ExpandRemotePatterns(&p, "/", []string{oldPath}, false)
+		if err != nil {
+			fmt.Printf("Could not find file or folder at path '%s'\n", oldPath)
+			logx.Error(err)
+			return nil
+		}
+		if len(expandedPaths) != 1 {
+			return fmt.Errorf("rename target must match exactly one path")
+		}
+		oldPath = expandedPaths[0]
+
 		fileStat, err := p.GetFileByPath(oldPath)
 		if err != nil {
 			fmt.Printf("Could not find file or folder at path '%s'\n", oldPath)

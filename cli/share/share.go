@@ -23,6 +23,14 @@ var ShareCommand = &cobra.Command{
 			logx.Error(err)
 			return
 		}
+		if len(args) > 0 {
+			args, err = api.ExpandRemotePatterns(&p, folder, args, false)
+			if err != nil {
+				fmt.Println("Expand share target failed")
+				logx.Error(err)
+				return
+			}
+		}
 		// Output file handle
 		var f = os.Stdout
 		if strings.TrimSpace(output) != "" {
@@ -97,7 +105,7 @@ func shareFiles(p *api.PikPak, args []string, f *os.File) {
 		}
 	}
 	for _, path := range args {
-		stat, err := p.GetFileStat(parentId, path)
+		stat, err := resolveShareTarget(p, parentId, path)
 		if err != nil {
 			fmt.Println(path, "get file stat error")
 			logx.Error(err)
@@ -105,4 +113,11 @@ func shareFiles(p *api.PikPak, args []string, f *os.File) {
 		}
 		fmt.Fprintf(f, "PikPak://%s|%s|%s\n", stat.Name, stat.Size, stat.Hash)
 	}
+}
+
+func resolveShareTarget(p *api.PikPak, resolvedParentID string, target string) (api.FileStat, error) {
+	if strings.HasPrefix(target, "/") || strings.Contains(target, "/") {
+		return p.GetFileByPath(target)
+	}
+	return p.GetFileStat(resolvedParentID, target)
 }
