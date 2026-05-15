@@ -4,6 +4,7 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/52funny/pikpakcli/internal/api"
 	"github.com/spf13/cobra"
@@ -139,4 +140,83 @@ func TestRequiresExplicitOutputFlag(t *testing.T) {
 
 	require.NoError(t, cmd.Flags().Set("output", "."))
 	require.False(t, requiresExplicitOutputFlag(cmd, []string{"file.txt", "."}))
+}
+
+func TestParseTimeRangeSpec(t *testing.T) {
+	closed, err := parseTimeRangeSpec("10-20")
+	require.NoError(t, err)
+	require.Equal(t, "10", closed.Start)
+	require.Equal(t, "20", closed.End)
+
+	openEnded, err := parseTimeRangeSpec("01:02-")
+	require.NoError(t, err)
+	require.Equal(t, "01:02", openEnded.Start)
+	require.Empty(t, openEnded.End)
+}
+
+func TestParseTimeRangeSpecRejectsInvalidValues(t *testing.T) {
+	for _, spec := range []string{"", "-10", "10", "a-10", "10-b", "10-20-30", "01::02-03:04"} {
+		_, err := parseTimeRangeSpec(spec)
+		require.Error(t, err, spec)
+	}
+}
+
+func TestTimeRangeOutputName(t *testing.T) {
+	require.Equal(t, "movie.10-20.mp4", timeRangeOutputName("movie.mp4", TimeRange{Start: "10", End: "20"}))
+	require.Equal(t, "movie.01-02-end.mkv", timeRangeOutputName("movie.mkv", TimeRange{Start: "01:02"}))
+}
+
+func TestMediaClipSourceURLPrefersDefaultVisibleMedia(t *testing.T) {
+	file := &api.File{}
+	file.Links.ApplicationOctetStream.URL = "https://example.com/original"
+	file.Medias = []struct {
+		MediaID   string      `json:"media_id"`
+		MediaName string      `json:"media_name"`
+		Video     interface{} `json:"video"`
+		Link      struct {
+			URL    string    `json:"url"`
+			Token  string    `json:"token"`
+			Expire time.Time `json:"expire"`
+		} `json:"link"`
+		NeedMoreQuota  bool          `json:"need_more_quota"`
+		VipTypes       []interface{} `json:"vip_types"`
+		RedirectLink   string        `json:"redirect_link"`
+		IconLink       string        `json:"icon_link"`
+		IsDefault      bool          `json:"is_default"`
+		Priority       int           `json:"priority"`
+		IsOrigin       bool          `json:"is_origin"`
+		ResolutionName string        `json:"resolution_name"`
+		IsVisible      bool          `json:"is_visible"`
+		Category       string        `json:"category"`
+	}{
+		{
+			Link: struct {
+				URL    string    `json:"url"`
+				Token  string    `json:"token"`
+				Expire time.Time `json:"expire"`
+			}{URL: "https://example.com/visible"},
+			IsVisible: true,
+		},
+		{
+			Link: struct {
+				URL    string    `json:"url"`
+				Token  string    `json:"token"`
+				Expire time.Time `json:"expire"`
+			}{URL: "https://example.com/default"},
+			IsDefault: true,
+			IsVisible: true,
+		},
+	}
+
+	require.Equal(t, "https://example.com/default", mediaClipSourceURL(file))
+}
+
+func TestFFmpegClipperReportsMissingFFmpeg(t *testing.T) {
+	t.Setenv("PATH", "")
+
+	err := ffmpegClipper{}.Clip("https://example.com/video.mp4", TimeRange{Start: "0", End: "10"}, filepath.Join(t.TempDir(), "clip.mp4"))
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ffmpeg is required for --time-range")
+	require.Contains(t, err.Error(), "install ffmpeg")
 }
