@@ -71,6 +71,13 @@
   pikpakcli download -p Movies -o Film -g
   ```
 
+- Download a time range from a single video file. This requires `ffmpeg` to be installed and available in `PATH`.
+
+  ```bash
+  pikpakcli download --time-range 10-20 -p Movies Peppa_Pig.mp4 -o Film
+  pikpakcli download --time-range 01:02-01:30 -p Movies/Peppa_Pig.mp4 -o Film
+  ```
+
 ## Share
 
 - Share links to all files under Movies.

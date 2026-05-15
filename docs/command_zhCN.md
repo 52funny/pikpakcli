@@ -68,6 +68,13 @@
   pikpakcli download -p Movies -o Film -g
   ```
 
+- 下载单个视频文件的指定时间范围。该功能需要安装 `ffmpeg`，并确保 `ffmpeg` 在 `PATH` 中。
+
+  ```bash
+  pikpakcli download --time-range 10-20 -p Movies Peppa_Pig.mp4 -o Film
+  pikpakcli download --time-range 01:02-01:30 -p Movies/Peppa_Pig.mp4 -o Film
+  ```
+
 ## 分享
 
 - 分享 Movies 下的所有文件的链接
