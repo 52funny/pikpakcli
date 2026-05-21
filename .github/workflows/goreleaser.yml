@@ -24,4 +24,4 @@ jobs:
           distribution: goreleaser
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
