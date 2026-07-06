@@ -133,11 +133,20 @@ func readFromPath(path string) error {
 
 // Read configuration file from config path
 func readFromConfigDir() error {
-	configDir, err := os.UserConfigDir()
+	path, err := DefaultConfigPath()
 	if err != nil {
 		return err
 	}
-	return readConfig(filepath.Join(configDir, "pikpakcli", "config.yml"))
+	return readConfig(path)
+}
+
+// DefaultConfigPath returns the default user config file path.
+func DefaultConfigPath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(configDir, "pikpakcli", "config.yml"), nil
 }
 
 func readConfig(path string) error {

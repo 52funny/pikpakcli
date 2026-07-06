@@ -1,5 +1,19 @@
 # 命令使用方法
 
+## 初始化配置
+
+- 交互式创建默认配置文件并输入账号设置
+
+  ```bash
+  pikpakcli setup
+  ```
+
+- 覆盖已有默认配置文件
+
+  ```bash
+  pikpakcli setup --force
+  ```
+
 ## 上传
 
 - 将本地目录下的所有文件上传至 Movies 文件夹内

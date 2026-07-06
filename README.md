@@ -52,11 +52,15 @@ Download the executable file you need from the [Releases](https://github.com/52f
 
 ## Configuration
 
-First, configure the `config_example.yml` file in the project, entering your account details.
+Run `setup` to create the default config file and enter your account details:
+
+```bash
+pikpakcli setup
+```
 
 If your account uses a phone number, it must be preceded by the country code, like `+861xxxxxxxxxx`.
 
-Then, rename it to `config.yml`.
+If the config file already exists, `setup` will refuse to overwrite it unless you pass `--force`.
 
 The configuration file will first be read from the current directory (`config.yml`). If it doesn't exist there, it will be read from the user's default configuration directory. The default root directories for each platform are:
 

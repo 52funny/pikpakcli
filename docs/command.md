@@ -2,6 +2,20 @@
 
 > For docker users, please refer to the [Docker Command Usage](docs/command_docker.md).
 
+## Setup
+
+- Create the default config file and enter account settings interactively.
+
+  ```bash
+  pikpakcli setup
+  ```
+
+- Overwrite an existing default config file.
+
+  ```bash
+  pikpakcli setup --force
+  ```
+
 ## Upload
 
 - Uploads all files in the local directory to the Movies folder.

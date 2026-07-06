@@ -12,6 +12,7 @@ import (
 	"github.com/52funny/pikpakcli/cli/quota"
 	"github.com/52funny/pikpakcli/cli/rename"
 	"github.com/52funny/pikpakcli/cli/rubbish"
+	"github.com/52funny/pikpakcli/cli/setup"
 	"github.com/52funny/pikpakcli/cli/share"
 	"github.com/52funny/pikpakcli/cli/upload"
 	"github.com/52funny/pikpakcli/conf"
@@ -26,6 +27,10 @@ var rootCmd = &cobra.Command{
 		cmd.Help()
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if cmd.CommandPath() == "pikpakcli setup" {
+			logx.Init(debug, debugTopics)
+			return
+		}
 		err := conf.InitConfig(configPath)
 		if err != nil {
 			fmt.Println("Init config failed")
@@ -58,6 +63,7 @@ func init() {
 	rootCmd.AddCommand(empty.EmptyCmd)
 	rootCmd.AddCommand(rubbish.RubbishCmd)
 	rootCmd.AddCommand(rename.RenameCmd)
+	rootCmd.AddCommand(setup.SetupCmd)
 	rootCmd.AddCommand(shellCmd)
 }
 
