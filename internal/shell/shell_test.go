@@ -204,6 +204,10 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	rootCmd.AddCommand(deleteCmd)
 	renameCmd := &cobra.Command{Use: "rename"}
 	rootCmd.AddCommand(renameCmd)
+
+	moveCmd := &cobra.Command{Use: "mv", Aliases: []string{"move"}}
+	moveCmd.Flags().Bool("literal", false, "")
+	rootCmd.AddCommand(moveCmd)
 	rootCmd.AddCommand(&cobra.Command{Use: "shell"})
 
 	completer := &shellAutoCompleter{
@@ -257,6 +261,10 @@ func TestCompleterCommandsAndFlags(t *testing.T) {
 	require.Contains(t, candidates, []rune("ie.mp4"))
 
 	candidates, offset = completer.Do([]rune("rename mov"), len("rename mov"))
+	require.Equal(t, len([]rune("mov")), offset)
+	require.Contains(t, candidates, []rune("ie.mp4"))
+
+	candidates, offset = completer.Do([]rune("mv mov"), len("mv mov"))
 	require.Equal(t, len([]rune("mov")), offset)
 	require.Contains(t, candidates, []rune("ie.mp4"))
 
@@ -423,6 +431,10 @@ func TestAdaptShellArgs(t *testing.T) {
 	renameCmd := &cobra.Command{Use: "rename"}
 	rootCmd.AddCommand(renameCmd)
 
+	moveCmd := &cobra.Command{Use: "mv", Aliases: []string{"move"}}
+	moveCmd.Flags().Bool("literal", false, "")
+	rootCmd.AddCommand(moveCmd)
+
 	newCmd := &cobra.Command{Use: "new"}
 	newCmd.Aliases = []string{"n"}
 	newFolderCmd := &cobra.Command{Use: "folder"}
@@ -458,6 +470,9 @@ func TestAdaptShellArgs(t *testing.T) {
 		{name: "delete rewrites relative args", args: []string{"delete", "a", "b/c"}, want: []string{"delete", "/Movies/a", "/Movies/b/c"}},
 		{name: "rm alias rewrites relative args", args: []string{"rm", "a", "b/c"}, want: []string{"rm", "/Movies/a", "/Movies/b/c"}},
 		{name: "rename rewrites first arg only", args: []string{"rename", "old.txt", "new.txt"}, want: []string{"rename", "/Movies/old.txt", "new.txt"}},
+		{name: "mv rewrites all relative paths", args: []string{"mv", "old.mkv", "Kids/episode.mkv", "Archive"}, want: []string{"mv", "/Movies/old.mkv", "/Movies/Kids/episode.mkv", "/Movies/Archive"}},
+		{name: "move alias rewrites wildcard and parent destination", args: []string{"move", "*.mkv", ".."}, want: []string{"move", "/Movies/*.mkv", "/"}},
+		{name: "mv literal preserves flag and absolute paths", args: []string{"mv", "--literal", "[draft].mkv", "/Archive"}, want: []string{"mv", "--literal", "/Movies/[draft].mkv", "/Archive"}},
 		{name: "new folder injects current path", args: []string{"new", "folder", "a/b"}, want: []string{"new", "folder", "-p", "/Movies", "a/b"}},
 		{name: "new alias folder injects current path", args: []string{"n", "folder", "a/b"}, want: []string{"n", "folder", "-p", "/Movies", "a/b"}},
 		{name: "new url injects current path", args: []string{"new", "url", "https://example.com"}, want: []string{"new", "url", "-p", "/Movies", "https://example.com"}},

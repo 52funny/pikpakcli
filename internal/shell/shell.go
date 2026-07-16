@@ -261,7 +261,7 @@ func shouldCompleteRemoteTargetPath(commandKey string, tokens []string, active s
 
 	positionalsAfterCommand := positionalTokens(tokens[consumed:], active)
 	switch commandKey {
-	case "download", "share", "delete":
+	case "download", "share", "delete", "mv":
 		return len(positionalsAfterCommand) >= 1
 	case "rename":
 		return len(positionalsAfterCommand) == 1
@@ -486,6 +486,8 @@ func adaptShellArgs(rootCmd *cobra.Command, currentPath string, args []string) [
 		}
 	case "rename":
 		rest = rewritePositionalPaths(rest, currentPath, 1)
+	case "mv":
+		rest = rewritePositionalPaths(rest, currentPath, -1)
 	}
 
 	return append(append([]string{}, args[:consumed]...), rest...)

@@ -161,17 +161,23 @@ func (p *PikPak) getCaptchaToken() (string, error) {
 }
 
 func (p *PikPak) sendRequest(req *http.Request) ([]byte, error) {
+	bs, _, err := p.sendRequestWithStatus(req)
+	return bs, err
+}
+
+func (p *PikPak) sendRequestWithStatus(req *http.Request) ([]byte, int, error) {
 	p.setHeader(req)
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	bs, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
+
+	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
-	return bs, nil
+	return bs, resp.StatusCode, nil
 }
 
 func (p *PikPak) setHeader(req *http.Request) {
