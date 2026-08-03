@@ -21,8 +21,8 @@ Usage:
 
 If the share requires a passcode, provide it as the second argument.
 Files are restored into the "Pack From Shared" folder.`,
-	Example: `  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1
-  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1 dd3e`,
+	Example: `  pikpakcli save https://mypikpak.com/s/<share_id>
+  pikpakcli save https://mypikpak.com/s/<share_id> dd3e`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		shareURL := strings.TrimSpace(args[0])

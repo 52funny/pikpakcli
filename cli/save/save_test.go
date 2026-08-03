@@ -12,13 +12,13 @@ func TestParseShareID(t *testing.T) {
 		in   string
 		want string
 	}{
-		{"full https URL", "https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1", "VNd8GjsfMiZjnBU575_1zmwIo1"},
-		{"pan subdomain", "https://pan.mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1", "VNd8GjsfMiZjnBU575_1zmwIo1"},
+		{"full https URL", "https://mypikpak.com/s/EXAMPLE_SHARE_ID", "EXAMPLE_SHARE_ID"},
+		{"pan subdomain", "https://pan.mypikpak.com/s/EXAMPLE_SHARE_ID", "EXAMPLE_SHARE_ID"},
 		{"no scheme", "mypikpak.com/s/abc123", "abc123"},
-		{"trailing slash", "https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1/", "VNd8GjsfMiZjnBU575_1zmwIo1"},
-		{"url with subfolder", "https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1/dd3e", "VNd8GjsfMiZjnBU575_1zmwIo1"},
-		{"bare share id", "VNd8GjsfMiZjnBU575_1zmwIo1", "VNd8GjsfMiZjnBU575_1zmwIo1"},
-		{"bare share id trailing slash", "VNd8GjsfMiZjnBU575_1zmwIo1/", "VNd8GjsfMiZjnBU575_1zmwIo1"},
+		{"trailing slash", "https://mypikpak.com/s/EXAMPLE_SHARE_ID/", "EXAMPLE_SHARE_ID"},
+		{"url with subfolder", "https://mypikpak.com/s/EXAMPLE_SHARE_ID/dd3e", "EXAMPLE_SHARE_ID"},
+		{"bare share id", "EXAMPLE_SHARE_ID", "EXAMPLE_SHARE_ID"},
+		{"bare share id trailing slash", "EXAMPLE_SHARE_ID/", "EXAMPLE_SHARE_ID"},
 		{"empty", "", ""},
 		{"unrelated url", "https://example.com/foo/bar", ""},
 		{"mypikpak root", "https://mypikpak.com", ""},

@@ -221,13 +221,13 @@
 - 将分享链接（mypikpak.com/s/xxx）转存到自己的网盘
 
   ```bash
-  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1
+  pikpakcli save https://mypikpak.com/s/<share_id>
   ```
 
 - 转存需要提取码的分享
 
   ```bash
-  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1 dd3e
+  pikpakcli save https://mypikpak.com/s/<share_id> dd3e
   ```
 
 ## 交互 Shell

@@ -224,13 +224,13 @@
 - Restore a shared link (mypikpak.com/s/xxx) to your own drive.
 
   ```bash
-  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1
+  pikpakcli save https://mypikpak.com/s/<share_id>
   ```
 
 - Restore a share that requires a passcode.
 
   ```bash
-  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1 dd3e
+  pikpakcli save https://mypikpak.com/s/<share_id> dd3e
   ```
 
 ## Shell
