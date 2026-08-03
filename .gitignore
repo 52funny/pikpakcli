@@ -5,3 +5,5 @@ config.yml
 pikpakcli
 dist
 dist/
+pikpakcli-test
+pktest

@@ -216,6 +216,20 @@
   pikpakcli rename /Movies/Cartoons Kids
   ```
 
+## 转存
+
+- 将分享链接（mypikpak.com/s/xxx）转存到自己的网盘
+
+  ```bash
+  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1
+  ```
+
+- 转存需要提取码的分享
+
+  ```bash
+  pikpakcli save https://mypikpak.com/s/VNd8GjsfMiZjnBU575_1zmwIo1 dd3e
+  ```
+
 ## 交互 Shell
 
 - 启动交互式 shell
