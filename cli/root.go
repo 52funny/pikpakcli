@@ -7,6 +7,7 @@ import (
 	del "github.com/52funny/pikpakcli/cli/del"
 	"github.com/52funny/pikpakcli/cli/download"
 	"github.com/52funny/pikpakcli/cli/empty"
+	"github.com/52funny/pikpakcli/cli/link"
 	"github.com/52funny/pikpakcli/cli/list"
 	"github.com/52funny/pikpakcli/cli/move"
 	"github.com/52funny/pikpakcli/cli/new"
@@ -67,6 +68,7 @@ func init() {
 	rootCmd.AddCommand(rename.RenameCmd)
 	rootCmd.AddCommand(move.MoveCmd)
 	rootCmd.AddCommand(save.SaveCommand)
+	rootCmd.AddCommand(link.LinkCmd)
 	rootCmd.AddCommand(setup.SetupCmd)
 	rootCmd.AddCommand(shellCmd)
 }

@@ -233,6 +233,21 @@
   pikpakcli save https://mypikpak.com/s/<share_id> dd3e
   ```
 
+## Link
+
+- Print the direct download link of a file. The target is a file name with `-p` as the base path, or a full remote path. The link is the same signed URL the pikpak web "download" action generates, so it is time limited.
+
+  ```bash
+  pikpakcli link -p Movies Peppa_Pig.mp4
+  pikpakcli link /Movies/Peppa_Pig.mp4
+  ```
+
+- Use `-P` to point at a parent folder id directly.
+
+  ```bash
+  pikpakcli link -P AgmoDVmJPYbHn8ito1 Peppa_Pig.mp4
+  ```
+
 ## Shell
 
 - Start the interactive shell.

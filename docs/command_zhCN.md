@@ -230,6 +230,21 @@
   pikpakcli save https://mypikpak.com/s/<share_id> dd3e
   ```
 
+## 获取下载直链
+
+- 打印某个文件的下载直链。参数是文件名（配合 `-p` 作为基路径），或者是完整的远端路径。该直链与 PikPak 网页上「下载」生成的链接一致，带时效，过期需要重新获取。
+
+  ```bash
+  pikpakcli link -p Movies Peppa_Pig.mp4
+  pikpakcli link /Movies/Peppa_Pig.mp4
+  ```
+
+- 使用 `-P` 直接指定父目录的 id
+
+  ```bash
+  pikpakcli link -P AgmoDVmJPYbHn8ito1 Peppa_Pig.mp4
+  ```
+
 ## 交互 Shell
 
 - 启动交互式 shell
